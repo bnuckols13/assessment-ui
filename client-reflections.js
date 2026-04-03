@@ -3,11 +3,10 @@
  * Pure functions: (scoringResults, config) → reflection data + clinician JSON
  */
 
-// ─── Google Sheets Webhook ───────────────────────────────────────────────────
-// Paste your Google Apps Script web app URL here after deploying.
-// See google-apps-script.js for setup instructions.
-
-const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxBKOv1BDsrN3ctN_LDkY-Fe0jo9pyOavUBbsG9q4P3RbjluFnjV8T4izn0AgVaoTe7/exec";
+// ─── EmailJS Configuration ───────────────────────────────────────────────────
+const EMAILJS_PUBLIC_KEY = "ANt1qC0LKrmj-dEBp";
+const EMAILJS_SERVICE_ID = "service_ym3061l";
+const EMAILJS_TEMPLATE_ID = "template_zdn60cd";
 
 // ─── Overall Tone (from profile elevation) ───────────────────────────────────
 
@@ -221,7 +220,7 @@ function buildClinicianReport(scoringResults, answers, config) {
 }
 
 /**
- * Submit the clinician report to Google Sheets (and localStorage fallback).
+ * Submit the clinician report via EmailJS (and localStorage fallback).
  * Returns a promise: { ok: true } on success, { ok: false, error } on failure.
  */
 async function submitReport(report) {
@@ -232,30 +231,46 @@ async function submitReport(report) {
     console.warn("Could not save to localStorage:", e);
   }
 
-  // POST to Google Sheets webhook
-  if (!GOOGLE_SHEETS_WEBHOOK_URL) {
-    console.warn("No Google Sheets webhook URL configured — results saved to localStorage only.");
-    return { ok: true, method: "localStorage" };
-  }
+  // Build T-score lookup
+  const t = {};
+  [].concat(
+    report.scoring.inconsistencyResults || [],
+    report.scoring.validityScales || [],
+    report.scoring.clinicalScales || [],
+    report.scoring.contentScales || [],
+    report.scoring.supplementaryScales || []
+  ).forEach(s => { t[s.code] = s.tScore ?? "-"; });
+
+  const criticalNames = (report.scoring.criticalItems || [])
+    .map(g => g.name + " (" + g.endorsed.length + "/" + g.total + ")")
+    .join("\n") || "None";
+
+  // EmailJS template params
+  const params = {
+    client_name: report.client.clientName || "Anonymous",
+    gender: report.client.gender || "-",
+    form_length: report.client.formLength || "-",
+    timestamp: new Date(report.timestamp).toLocaleString(),
+    elevation: report.scoring.profileElevation ?? "-",
+    // Validity
+    vrin: t.VRIN, trin: t.TRIN, l: t.L, f: t.F, fb: t.Fb, fp: t.Fp, k: t.K, s: t.S,
+    // Clinical
+    hs: t.Hs, d: t.D, hy: t.Hy, pd: t.Pd, mf: t.Mf, pa: t.Pa, pt: t.Pt, sc: t.Sc, ma: t.Ma, si: t.Si,
+    // Safety
+    safety_level: report.safetyFlags.level,
+    crisis_shown: report.safetyFlags.showCrisisResource ? "YES" : "No",
+    si_count: report.safetyFlags.endorsedHighRiskCount,
+    // Critical groups
+    critical_groups: criticalNames,
+    // Answer string
+    answer_string: report.answerString || "",
+  };
 
   try {
-    // Use a form POST via hidden iframe to avoid CORS issues with Apps Script.
-    // Apps Script redirects on POST which fetch can't follow cross-origin,
-    // so we use the beacon API with text/plain (allowed without preflight).
-    const sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBHOOK_URL, JSON.stringify(report));
-    if (sent) {
-      return { ok: true, method: "sheets" };
-    }
-    // Fallback: try fetch with no-cors and text/plain
-    await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(report),
-    });
-    return { ok: true, method: "sheets" };
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+    return { ok: true, method: "email" };
   } catch (err) {
-    console.warn("Google Sheets submission failed, results saved to localStorage:", err);
-    return { ok: false, error: err.message, method: "localStorage" };
+    console.warn("EmailJS failed, results saved to localStorage:", err);
+    return { ok: false, error: String(err), method: "localStorage" };
   }
 }
