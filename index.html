@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personality Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --surface: #FFFFFF;
+    --surface-2: #F5F3EF;
+    --surface-3: #EDEAE4;
+    --border: #E7E5E4;
+    --border-strong: #D4D0CA;
+    --text: #1C1917;
+    --text-secondary: #57534E;
+    --text-tertiary: #A8A29E;
+    --accent: #4A5568;
+    --accent-bg: #EDF0F5;
+    --accent-border: #C8D0DC;
+    --true-color: #5A7A50;
+    --true-bg: #F0F5EE;
+    --true-border: #C2D4BC;
+    --false-color: #9A4A3A;
+    --false-bg: #FAF0ED;
+    --false-border: #E2C0B4;
+    --warn: #8A6A3A;
+    --warn-bg: #FAF3EB;
+    --warn-border: #E2D0B4;
+    --radius: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Setup Screen ── */
+  .setup-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3rem;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .setup-card h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .setup-card .subtitle, .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+  }
+
+  .option-group {
+    margin-bottom: 1.75rem;
+  }
+
+  .option-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.6rem;
+    text-align: left;
+  }
+
+  .toggle-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .toggle-btn:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  .toggle-btn.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .start-btn, .score-btn {
+    width: 100%;
+    padding: 0.85rem;
+    border: 1px solid var(--text);
+    border-radius: var(--radius);
+    background: var(--text);
+    color: var(--surface);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 1rem;
+  }
+
+  .start-btn:hover, .score-btn:hover {
+    background: var(--text-secondary);
+    border-color: var(--text-secondary);
+  }
+
+  .start-btn:disabled, .score-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+
+  /* ── Assessment Screen ── */
+  .assessment-screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(250, 250, 247, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.85rem 1.5rem;
+  }
+
+  .top-bar-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .progress-info {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress-info span {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .progress-track {
+    height: 2px;
+    background: var(--surface-3);
+    border-radius: 1px;
+    max-width: 720px;
+    margin: 0.5rem auto 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .keyboard-hint {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+  }
+
+  .keyboard-hint kbd {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.65rem;
+    background: var(--surface);
+    color: var(--text-secondary);
+    margin: 0 0.1rem;
+  }
+
+  .question-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+  }
+
+  .question-card {
+    max-width: 580px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .question-number {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 1.25rem;
+  }
+
+  .question-text {
+    font-size: 1.35rem;
+    font-weight: 400;
+    line-height: 1.6;
+    margin-bottom: 3rem;
+    letter-spacing: -0.005em;
+    color: var(--text);
+    min-height: 4.5rem;
+    transition: opacity 0.15s;
+  }
+
+  .question-text.fading { opacity: 0; }
+
+  .answer-row {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+  }
+
+  .answer-btn {
+    min-width: 150px;
+    padding: 1rem 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .answer-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+    border-radius: inherit;
+  }
+
+  .answer-btn.false-btn::before { background: var(--false-bg); }
+  .answer-btn.true-btn::before { background: var(--true-bg); }
+  .answer-btn:hover::before { opacity: 1; }
+
+  .answer-btn.false-btn:hover, .answer-btn.false-btn:focus-visible {
+    border-color: var(--false-border); color: var(--false-color);
+  }
+  .answer-btn.true-btn:hover, .answer-btn.true-btn:focus-visible {
+    border-color: var(--true-border); color: var(--true-color);
+  }
+  .answer-btn.flash-false {
+    border-color: var(--false-color); color: var(--false-color);
+    background: var(--false-bg);
+  }
+  .answer-btn.flash-false::before { opacity: 1; }
+  .answer-btn.flash-true {
+    border-color: var(--true-color); color: var(--true-color);
+    background: var(--true-bg);
+  }
+  .answer-btn.flash-true::before { opacity: 1; }
+
+  .answer-btn .key-badge {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+  }
+
+  .nav-btn {
+    padding: 0.45rem 1.1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .nav-btn:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+  .nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* ── Minimap ── */
+  .minimap-toggle {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-tertiary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .minimap-toggle:hover {
+    border-color: var(--border-strong);
+    color: var(--text-secondary);
+  }
+
+  .minimap-panel {
+    position: fixed;
+    bottom: 4.5rem;
+    right: 1.5rem;
+    width: 310px;
+    max-height: 60vh;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    overflow-y: auto;
+    z-index: 200;
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  }
+
+  .minimap-panel.open { display: block; }
+
+  .minimap-panel h3 {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.85rem;
+  }
+
+  .minimap-grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 2px;
+  }
+
+  .minimap-dot {
+    aspect-ratio: 1;
+    border-radius: 1px;
+    background: var(--surface-3);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .minimap-dot:hover { border-color: var(--accent); transform: scale(1.5); z-index: 1; }
+  .minimap-dot.current { border-color: var(--accent); background: var(--accent-bg); }
+  .minimap-dot.answered-true { background: var(--true-color); opacity: 0.55; }
+  .minimap-dot.answered-false { background: var(--false-color); opacity: 0.45; }
+
+  /* ── Complete Screen (pre-scoring) ── */
+  .complete-screen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .complete-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 3rem;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .complete-card .checkmark {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--true-bg);
+    border: 1.5px solid var(--true-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 1.5rem;
+    color: var(--true-color);
+  }
+
+  .complete-card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.35rem; }
+
+  .complete-card .stat-row {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    margin: 2rem 0;
+  }
+
+  .stat-box { text-align: center; }
+  .stat-box .num { font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-box .num.true-num { color: var(--true-color); }
+  .stat-box .num.false-num { color: var(--false-color); }
+  .stat-box .lbl {
+    font-size: 0.65rem; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.2rem;
+  }
+
+  .btn-row { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+
+  .export-btn {
+    padding: 0.75rem 1.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .export-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--surface-2); }
+
+  .unanswered-note { color: var(--text-tertiary); font-size: 0.82rem; margin-top: 1.5rem; }
+
+  /* ── Results Screen ── */
+  .results-screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+
+  .results-container {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .results-header {
+    text-align: center;
+    padding: 2rem 0 1rem;
+  }
+
+  .results-header h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+
+  .results-header .meta {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  .disclaimer-banner {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.78rem;
+    color: var(--warn);
+    line-height: 1.55;
+  }
+
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-btn {
+    padding: 0.65rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover { color: var(--text-secondary); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); font-weight: 600; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .summary-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem;
+    text-align: center;
+  }
+
+  .summary-stat .val {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .summary-stat .val.elevated { color: var(--false-color); }
+  .summary-stat .val.normal { color: var(--true-color); }
+  .summary-stat .val.borderline { color: var(--warn); }
+
+  .summary-stat .label {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.35rem;
+  }
+
+  /* Scale tables */
+  .scale-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-bottom: 2rem;
+  }
+
+  .scale-table th {
+    text-align: left;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1.5px solid var(--border-strong);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+  }
+
+  .scale-table td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+
+  .scale-table tr:hover { background: var(--surface-2); }
+
+  .t-score-cell {
+    font-weight: 700;
+    min-width: 45px;
+  }
+
+  .t-elevated { color: var(--false-color); }
+  .t-borderline { color: var(--warn); }
+  .t-normal { color: var(--text); }
+
+  /* T-score bar */
+  .t-bar-cell { width: 180px; }
+  .t-bar-wrap {
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .t-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .t-bar-fill.normal { background: var(--accent); }
+  .t-bar-fill.borderline { background: var(--warn); }
+  .t-bar-fill.elevated { background: var(--false-color); }
+
+  /* Profile chart (canvas) */
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .chart-container h3 {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    margin-bottom: 1rem;
+  }
+
+  .chart-container canvas {
+    width: 100%;
+    max-height: 320px;
+  }
+
+  /* Critical items */
+  .critical-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+
+  .critical-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .critical-group-header:hover { background: var(--surface-2); }
+
+  .critical-group-header h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .critical-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 3px;
+    background: var(--false-bg);
+    color: var(--false-color);
+    border: 1px solid var(--false-border);
+  }
+
+  .critical-items-list {
+    display: none;
+    padding: 0 1.1rem 0.85rem;
+  }
+
+  .critical-items-list.open { display: block; }
+
+  .critical-item-row {
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0.65rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+
+  .critical-item-row:last-child { border-bottom: none; }
+
+  .critical-item-num {
+    color: var(--text-tertiary);
+    font-weight: 600;
+    min-width: 30px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .critical-item-resp {
+    color: var(--false-color);
+    font-weight: 600;
+    min-width: 22px;
+  }
+
+  .no-critical {
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  /* Results export row */
+  .results-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .setup-card { padding: 2rem 1.25rem; }
+    .question-text { font-size: 1.15rem; }
+    .answer-btn { min-width: 120px; padding: 0.85rem 1.25rem; }
+    .minimap-panel { width: calc(100vw - 3rem); right: 1.5rem; }
+    .keyboard-hint { display: none; }
+    .t-bar-cell { display: none; }
+    .tab-btn { font-size: 0.72rem; padding: 0.55rem 0.7rem; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── SETUP ── -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-card">
+    <h1>Personality Assessment</h1>
+    <p class="subtitle">567 items. Answer each statement True or False based on how it applies to you.</p>
+
+    <div class="option-group">
+      <label>Respondent</label>
+      <div class="toggle-row">
+        <button class="toggle-btn" data-group="gender" data-val="male" onclick="setOption(this)">Male</button>
+        <button class="toggle-btn" data-group="gender" data-val="female" onclick="setOption(this)">Female</button>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <label>Form Length</label>
+      <div class="toggle-row">
+        <button class="toggle-btn" data-group="form" data-val="long" onclick="setOption(this)">Long Form</button>
+        <button class="toggle-btn" data-group="form" data-val="short" onclick="setOption(this)">Short Form</button>
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn" disabled onclick="startAssessment()">Begin Assessment</button>
+  </div>
+</div>
+
+<!-- ── ASSESSMENT ── -->
+<div class="assessment-screen" id="assessmentScreen">
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <div class="progress-info">
+        <span id="answeredCount">0</span> / <span id="totalCount">567</span> answered
+      </div>
+      <div class="keyboard-hint">
+        <kbd>&larr;</kbd> False &nbsp; <kbd>&rarr;</kbd> True &nbsp; <kbd>&uarr;</kbd><kbd>&darr;</kbd> Nav
+      </div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="question-area">
+    <div class="question-card">
+      <div class="question-number" id="questionNumber">Question 1</div>
+      <div class="question-text" id="questionText"></div>
+
+      <div class="answer-row">
+        <button class="answer-btn false-btn" onclick="answer(false)">
+          False
+          <span class="key-badge">&larr;</span>
+        </button>
+        <button class="answer-btn true-btn" onclick="answer(true)">
+          True
+          <span class="key-badge">&rarr;</span>
+        </button>
+      </div>
+
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn" onclick="navigate(-1)" disabled>&larr; Previous</button>
+        <button class="nav-btn" id="skipBtn" onclick="navigate(1)">Skip &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="minimap-toggle" id="minimapToggle" onclick="toggleMinimap()" title="Overview">&#9638;</button>
+  <div class="minimap-panel" id="minimapPanel">
+    <h3>Overview</h3>
+    <div class="minimap-grid" id="minimapGrid"></div>
+  </div>
+</div>
+
+<!-- ── COMPLETE (pre-score) ── -->
+<div class="complete-screen" id="completeScreen">
+  <div class="complete-card">
+    <div class="checkmark">&#10003;</div>
+    <h2>Assessment Complete</h2>
+    <p class="subtitle" style="margin-bottom:1rem">All items have been reviewed.</p>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="num true-num" id="trueCount">0</div>
+        <div class="lbl">True</div>
+      </div>
+      <div class="stat-box">
+        <div class="num false-num" id="falseCount">0</div>
+        <div class="lbl">False</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="skipCount" style="color:var(--text-muted)">0</div>
+        <div class="lbl">Unanswered</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="export-btn" onclick="reviewUnanswered()">Review Unanswered</button>
+      <button class="score-btn" onclick="runScoring()" style="width:auto; padding:0.85rem 2.5rem;">Score Results</button>
+    </div>
+    <p class="unanswered-note" id="unansweredNote"></p>
+  </div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div class="results-screen" id="resultsScreen">
+  <div class="results-container">
+    <div class="results-header">
+      <h2>Scoring Report</h2>
+      <div class="meta" id="resultsMeta"></div>
+    </div>
+
+    <div class="disclaimer-banner">
+      This tool provides numeric scoring only. It is not a substitute for interpretation by a qualified professional.
+      All results should be reviewed in clinical context.
+    </div>
+
+    <!-- Summary cards -->
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <!-- Tabs -->
+    <div class="tab-bar" id="tabBar">
+      <button class="tab-btn active" onclick="switchTab('validity')">Validity</button>
+      <button class="tab-btn" onclick="switchTab('clinical')">Clinical</button>
+      <button class="tab-btn" onclick="switchTab('content')">Content</button>
+      <button class="tab-btn" onclick="switchTab('supplementary')">Supplementary</button>
+      <button class="tab-btn" onclick="switchTab('critical')">Critical Items</button>
+      <button class="tab-btn" onclick="switchTab('profile')">Profile Chart</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-validity"></div>
+    <div class="tab-panel" id="tab-clinical"></div>
+    <div class="tab-panel" id="tab-content"></div>
+    <div class="tab-panel" id="tab-supplementary"></div>
+    <div class="tab-panel" id="tab-critical"></div>
+    <div class="tab-panel" id="tab-profile">
+      <div class="chart-container">
+        <h3>Clinical Profile</h3>
+        <canvas id="profileCanvas" height="320"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Validity Profile</h3>
+        <canvas id="validityCanvas" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="results-actions">
+      <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+      <button class="export-btn" onclick="exportJSON()">Export JSON</button>
+      <button class="export-btn" onclick="goBackToReview()">Back to Review</button>
+    </div>
+  </div>
+</div>
+
+<script src="scoring-data.js"></script>
+<script src="scoring-engine.js"></script>
+<script>
+// ── Item text ──
+const questions = [
+  "I like mechanics magazines.",
+  "I have a good appetite.",
+  "I wake up fresh and rested most mornings.",
+  "I think I would enjoy the work of a librarian.",
+  "I am easily awakened by noise.",
+  "My father is a good man, or if your father is dead, my father was a good man.",
+  "I like to read newspaper articles on crime.",
+  "My hands and feet are usually warm enough.",
+  "My daily life is full of things that keep me interested.",
+  "I am about as able to work as I ever was.",
+  "There seems to be a lump in my throat much of the time.",
+  "My sex life is satisfactory.",
+  "People should try to understand their dreams and be guided by or take warning from them.",
+  "I enjoy detective or mystery stories.",
+  "I work under a great deal of tension.",
+  "Once in a while I think of things too bad to talk about.",
+  "I am sure I get a raw deal from life.",
+  "I am troubled by attacks of nausea and vomiting.",
+  "When I take a new job, I like to find out whom it is important to be nice to.",
+  "I am very seldom bothered by constipation.",
+  "At times I have very much wanted to leave home.",
+  "No one seems to understand me.",
+  "At times I have fits of laughing and crying that I cannot control.",
+  "Evil spirits possess me at times.",
+  "I would like to be a singer.",
+  "I feel that it is certainly best to keep my mouth shut when I am in trouble.",
+  "When people do me wrong, I feel I should pay them back, just for the principle of the thing.",
+  "I am bothered by an upset stomach several times a week.",
+  "At times I feel like swearing.",
+  "I have nightmares every few nights.",
+  "I find it hard to keep my mind on a task or job.",
+  "I have had very peculiar and strange experiences.",
+  "I seldom worry about my health.",
+  "I have never been in trouble because of my sexual behavior.",
+  "Sometimes when I was young I stole things.",
+  "I have a cough most of the time.",
+  "At times I feel like smashing things.",
+  "I have had periods of days, weeks, or months when I couldn't take care of things because I couldn't \"get going\".",
+  "My sleep is fitful and disturbed.",
+  "Much of the time, my head seems to hurt all over.",
+  "I do not always tell the truth.",
+  "If people had not had it in for me, I would have been much more successful.",
+  "My judgment is better than it ever was.",
+  "Once a week or more often I suddenly feel hot all over, for no reason.",
+  "I am in just as good physical health as most of my friends.",
+  "I prefer to pass by school friends, or people I know but have not seen for a long time, unless they speak to me first.",
+  "I am almost never bothered by pains over my heart or in my chest.",
+  "Most anytime I would rather sit and daydream than do anything else.",
+  "I am a very sociable person.",
+  "I have often had to take orders from someone who did not know as much as I did.",
+  "I do not read every editorial in the newspaper every day.",
+  "I have not lived the right kind of life.",
+  "Parts of my body often have feelings like burning, tingling, crawling, or like \"going to sleep\".",
+  "My family does not like the work I have chosen or the work I intend to choose for my lifework.",
+  "I sometimes keep on at a thing until others lose their patience with me.",
+  "I wish I could be as happy as others seem to be.",
+  "I hardly ever feel pain in the back of my neck.",
+  "I think a great many people exaggerate their misfortunes in order to gain the sympathy and help of others.",
+  "I am troubled by discomfort in the pit of my stomach every few days or so.",
+  "When I am with people I am bothered by hearing very strange things.",
+  "I am an important person.",
+  "I have often wished I were a girl. Or if you are a girl: I have never been sorry that I am a girl.",
+  "My feelings are not easily hurt.",
+  "I enjoy reading love stories.",
+  "Most of the time I feel blue.",
+  "It would be better if almost all laws were thrown away.",
+  "I like poetry.",
+  "I sometimes tease animals.",
+  "I think I would like the kind of work a forest ranger does.",
+  "I am easily downed in an argument.",
+  "These days I find it hard not to give up hope of amounting to something.",
+  "My soul sometimes leaves my body.",
+  "I am certainly lacking in self-confidence.",
+  "I would like to be a florist.",
+  "I usually feel that life is worthwhile.",
+  "It takes a lot of argument to convince most people of the truth.",
+  "Once in a while I put off until tomorrow what I ought to do today.",
+  "Most people that know me like me.",
+  "I do not mind being made fun of.",
+  "I would like to be a nurse.",
+  "I think most people would lie to get ahead.",
+  "I do many things that I regret afterwards. I regret things more than others seem to.",
+  "I have very few quarrels with members of my family.",
+  "I was suspended from school one or more times for bad behavior.",
+  "At times, I have a strong urge to do something harmful or shocking.",
+  "I like to go to parties and other affairs where there is a lot of loud fun.",
+  "I have met problems so full of possibilities that I have been unable to make up my mind about them.",
+  "I believe that women ought to have as much sexual freedom as men.",
+  "My hardest battles are with myself.",
+  "I love my father, or if your father is dead, I loved my father.",
+  "I have little or no trouble with my muscles twitching or jumping.",
+  "I don't seem to care what happens to me.",
+  "Sometimes when I am not well I am irritable.",
+  "Much of the time I feel as if I have done something wrong or evil.",
+  "I am happy most of the time.",
+  "I see things or animals or people around me that others do not see.",
+  "There seems to be a fullness in my head or nose most of the time.",
+  "Some people are so bossy that I feel like doing the opposite of what they request, even though I know they are right.",
+  "Someone has it in for me.",
+  "I have never done anything dangerous just for the thrill of it.",
+  "Often I feel as if there is a tight band around my head.",
+  "I get angry sometimes.",
+  "I enjoy a race or game more when I bet on it.",
+  "Most people are honest chiefly because they are afraid of being caught.",
+  "In school I was sometimes sent to the principal for bad behavior.",
+  "My speech is the same as always, not faster or slower, no slurring or hoarseness.",
+  "My table manners are not quite as good at home as when I am out in company.",
+  "Anyone who is able and willing to work hard has a good chance of succeeding.",
+  "I seem to be about as capable and smart as most others around me.",
+  "Most people will use somewhat unfair means to gain profit or an advantage rather than to lose it.",
+  "I have a great deal of stomach trouble.",
+  "I like dramatics.",
+  "I know who is responsible for most of my troubles.",
+  "Sometimes I am so strongly attracted by the personal articles of others, such as shoes or gloves, that I want to handle or steal them, even though I have no use for them.",
+  "The sight of blood does not frighten me or make me sick.",
+  "Often I can't understand why I have been so irritable or grouchy.",
+  "I have never vomited blood or coughed up blood.",
+  "I do not worry about catching diseases.",
+  "I like collecting flowers or growing houseplants.",
+  "I frequently find it necessary to stand up for what I think is right.",
+  "I have never indulged in unusual sex practices.",
+  "At times my thoughts have raced ahead faster than I could speak them.",
+  "If I could get into the movies without paying and be sure I was not seen, I would probably do it.",
+  "I often wonder what hidden reason another person may have for doing something nice for me.",
+  "I believe that my home life is as pleasant as that of most people I know.",
+  "I believe in law enforcement.",
+  "Criticism or scolding hurts me terribly.",
+  "I like to cook.",
+  "My conduct is largely controlled by the behavior of those around me.",
+  "I certainly feel useless at times.",
+  "When I was a child, I belonged to a group of friends that tried to be loyal through all kinds of trouble.",
+  "I believe in life hereafter.",
+  "I would like to be a soldier.",
+  "At times I feel like picking a fistfight with someone.",
+  "I have often lost out on things because I couldn't make my mind up soon enough.",
+  "It makes me impatient to have people ask my advice or otherwise interrupt me when I am working on something important.",
+  "I used to keep a diary.",
+  "I believe I am being plotted against.",
+  "I would rather win than lose in a game.",
+  "Most nights I go to sleep without thoughts or ideas bothering me.",
+  "During the past few years I have been well most of the time.",
+  "I have never had a fit or convulsion.",
+  "I am neither gaining nor losing weight.",
+  "I believe I am being followed.",
+  "I feel that I have often been punished without cause.",
+  "I cry easily.",
+  "I cannot understand what I read as often as I used to.",
+  "I have never felt better in my life than I do now.",
+  "The top of my head sometimes feels tender.",
+  "Sometimes I feel as if I must injure either myself or someone else.",
+  "I resent having anyone trick me so cleverly that I have to admit that I was fooled.",
+  "I do not tire quickly.",
+  "I like to know some important people because it makes me feel important.",
+  "I am afraid when I look down from a high place.",
+  "It wouldn't make me nervous if any members of my family got into trouble with the law.",
+  "I am never happy unless I am roaming or traveling around.",
+  "What others think of me does not bother me.",
+  "It makes me uncomfortable to pull a stunt at a party even when others are doing the same sort of things.",
+  "I have never had a fainting spell.",
+  "I liked school.",
+  "I frequently have to fight against showing that I am bashful.",
+  "Someone has been trying to poison me.",
+  "I do not have a great fear of snakes.",
+  "I seldom or never have dizzy spells.",
+  "My memory seems to be all right.",
+  "I am worried about sex.",
+  "I find it hard to make small talk when I meet new people.",
+  "I have had periods in which I carried on activities without knowing later what I had been doing.",
+  "When I get bored I like to stir up some excitement.",
+  "I am afraid of losing my mind.",
+  "I am against giving money to beggars.",
+  "I frequently notice my hand shakes when I try to do something.",
+  "I can read a long while without tiring my eyes.",
+  "I like to study and read about things that I am working at.",
+  "I feel weak all over much of the time.",
+  "I have very few headaches.",
+  "My hands have not become clumsy or awkward.",
+  "Sometimes, when embarrassed, I break out in a sweat, which annoys me greatly.",
+  "I have had no difficulty in keeping my balance while walking.",
+  "There is something wrong with my mind.",
+  "I do not have spells of hay fever or asthma.",
+  "I have had attacks in which I could not control my movements or speech, but in which I knew what was going on around me.",
+  "I do not like everyone I know.",
+  "I daydream very little.",
+  "I wish I were not so shy.",
+  "I am not afraid to handle money.",
+  "If I were a reporter, I would very much like to report news of the theatre.",
+  "I enjoy many different kinds of play and recreation.",
+  "I like to flirt.",
+  "Many people treat me more like a child than a grown-up.",
+  "I would like to be a journalist.",
+  "My mother is a good woman, or if your mother is dead, my mother was a good woman.",
+  "In walking, I am very careful to step over sidewalk cracks.",
+  "I have never had any breaking out on my skin that has worried me.",
+  "There is very little love and companionship in my family as compared to other homes.",
+  "I frequently find myself worrying about something.",
+  "I think I would like the work of a building contractor.",
+  "I often hear voices without knowing where they come from.",
+  "I like science.",
+  "It is not hard for me to ask for help from my friends even though I cannot return the favor.",
+  "I very much like hunting.",
+  "My parents often objected to the kind of people I went around with.",
+  "I gossip a little at times.",
+  "My hearing is apparently as good as that of most people.",
+  "Some members of my family have habits that bother and annoy me very much.",
+  "At times I feel that I can make up my mind with unusually great ease.",
+  "I would like to belong to several clubs.",
+  "I hardly ever notice my heart pounding and I am seldom short of breath.",
+  "I like to talk about sex.",
+  "I like to visit places where I have never been before.",
+  "I have been inspired to a program of life based on duty which I have since carefully followed.",
+  "I have, at times stood in the way of people who were trying to do something, not because it amounted to much, but because of the principle of the thing.",
+  "I get mad easily and then get over it soon.",
+  "I have been quite independent and free from family rule.",
+  "I brood a great deal.",
+  "Someone has been trying to rob me.",
+  "My relatives are nearly all in sympathy with me.",
+  "I have periods of such great restlessness that I cannot sit long in a chair.",
+  "I have been disappointed in love.",
+  "I never worry about my looks.",
+  "I dream frequently about things that are best kept to myself.",
+  "Children should be taught all the main facts of sex.",
+  "I believe I am no more nervous than most others.",
+  "I have few or no pains.",
+  "My way of doing things is apt to be misunderstood by others.",
+  "Sometimes without any reason or even when things are going wrong, I feel excitedly happy or \"on top of the world\".",
+  "I don't blame people for trying to grab everything they can get in this world.",
+  "There are persons who are trying to steal my thoughts and ideas.",
+  "I have had blank spells in which my activities were interrupted and I did not know what was going on around me.",
+  "I can be friendly with people who do things that I consider wrong.",
+  "I like to be with a crowd who play jokes on one another.",
+  "Sometimes in elections, I vote for people about whom I know very little.",
+  "I have difficulty in starting to do things.",
+  "I believe I am a condemned person.",
+  "I was a slow learner in school.",
+  "If I were an artist, I would like to draw flowers.",
+  "It does not bother me that I am not better looking.",
+  "I sweat very easily, even on cool days.",
+  "I'm entirely self-confident.",
+  "At times it has been impossible for me to stop from stealing or shoplifting something.",
+  "It is safer to trust nobody.",
+  "Once a week or more, I become very excited.",
+  "When in a group of people, I have trouble thinking of the right thing to say.",
+  "Something exciting will almost always pull me out of it when I am feeling low.",
+  "When I leave home, I do not worry about whether the door is locked and the windows are closed.",
+  "I believe my sins are unpardonable.",
+  "I have numbness in one or more places on my skin.",
+  "I do not blame a person for taking advantage of people who leave themselves open to it.",
+  "My eyesight is as good as it has been for years.",
+  "At times I have been so entertained by the cleverness of some criminals that I have hopes they would get away with it.",
+  "I have often felt that strangers were looking at me critically.",
+  "Everything tastes the same.",
+  "I drink an unusually large amount of water every day.",
+  "Most people make friends because friends are likely to be useful to them.",
+  "I do not often notice my ears ringing or buzzing.",
+  "Once in a while I feel hate toward members of my family whom I usually love.",
+  "If I were a reporter I would very much like to report sporting news.",
+  "I can sleep during the day, but not at night.",
+  "I am sure I am being talked about.",
+  "Once in a while, I laugh at a dirty joke.",
+  "I have very few fears compared to my friends.",
+  "In a group of people, I would not be embarrassed to be called upon to start a discussion or give an opinion about something I know well.",
+  "I am always disgusted with the law when a criminal is freed through the arguments of a smart lawyer.",
+  "I have used alcohol excessively.",
+  "I am likely not to speak to people until they speak to me.",
+  "I have never been in trouble with the law.",
+  "I have periods in which I feel unusually cheerful without any special reason.",
+  "I wish I were not bothered by thoughts about sex.",
+  "If several people find themselves in trouble, the best thing for them to do is agree upon a story and stick to it.",
+  "It does not bother me particularly to see animals suffer.",
+  "I think that I feel more intensely than most people do.",
+  "There was never a time in my life when I liked to play with dolls.",
+  "Life is a strain for me much of the time.",
+  "I am so touchy on some subjects that I can't talk about them.",
+  "In school I found it very hard to talk in front of the class.",
+  "I love my mother, or if your mother is dead, I loved my mother.",
+  "Even when I am with people I feel lonely much of the time.",
+  "I get all the sympathy I should.",
+  "I refuse to play some games because I am not good at them.",
+  "I seem to make friends about as quickly as others do.",
+  "I dislike having people around me.",
+  "I have been told that I walk during sleep.",
+  "The person who provides temptation by leaving valuable property unprotected is about as much to blame for its theft as the one who steals it.",
+  "I think nearly anyone would tell a lie to keep out of trouble.",
+  "I am more sensitive than most people.",
+  "Most people inwardly dislike putting themselves out to help other people.",
+  "Many of my dreams are about sex.",
+  "My parents and family find more fault with me than they should.",
+  "I am easily embarrassed.",
+  "I worry over money and business.",
+  "I have never been in love with anyone.",
+  "The things that some of my family have done have frightened me.",
+  "I almost never dream.",
+  "My neck spots with red often.",
+  "I have never been paralyzed or had any unusual weakness of any of my muscles.",
+  "Sometimes my voice leaves me or changes even though I have no cold.",
+  "My mother or father often made me obey even when I thought it was unreasonable.",
+  "Peculiar odors come to me at times.",
+  "I cannot keep my mind on one thing.",
+  "I have reason for feeling jealous of one or more members of my family.",
+  "I feel anxiety about something or someone almost all the time.",
+  "I easily become impatient with people.",
+  "Most of the time I wish I were dead.",
+  "Sometimes I become so excited that I find it hard to get to sleep.",
+  "I have certainly had more than my share of things to worry about.",
+  "No one cares much about what happens to you.",
+  "At times I hear so well that it bothers me.",
+  "I forget right away what people say to me.",
+  "I usually have to stop and think before I act, even in small matters.",
+  "Often I cross the street in order not to meet someone I see.",
+  "I often feel as if things are not real.",
+  "The only interesting part of newspapers is the comic strips.",
+  "I have a habit of counting things that are not important, such as bulbs on electric signs and so forth.",
+  "I have no enemies who really wish to harm me.",
+  "I tend to be on my guard with people who are somewhat friendlier than I had expected.",
+  "I have strange and peculiar thoughts.",
+  "I get anxious and upset when I have to make a short trip away from home.",
+  "I usually expect to succeed in things I do.",
+  "I hear strange things when I am alone.",
+  "I have been afraid of things or people that I knew could not hurt me.",
+  "I have no dread of going into a room by myself where other people have already gathered and are talking.",
+  "I am afraid of a knife or anything very sharp or pointed.",
+  "Sometimes I enjoy hurting persons I love.",
+  "I can easily make other people afraid of me, and sometimes do it for the fun of it.",
+  "I have more trouble concentrating than others seem to have.",
+  "I have several times given up doing a thing because I thought too little of my ability.",
+  "Bad words, often terrible words, come into my mind and I cannot get rid of them.",
+  "Sometimes some unimportant thought will run through my mind and bother me for days.",
+  "Almost every day something happens to frighten me.",
+  "At times I am all full of energy.",
+  "I am inclined to take things hard.",
+  "At times I have enjoyed being hurt by someone I loved.",
+  "People say insulting and vulgar things about me.",
+  "I feel uneasy indoors.",
+  "I am not usually self-conscious.",
+  "Someone has control over my mind.",
+  "At parties I am more likely to sit by myself or with just one other person than to join in with the crowd.",
+  "People often disappoint me.",
+  "I have sometimes felt that difficulties were piling up so high that I could not overcome them.",
+  "I love to go to dances.",
+  "At periods, my mind seems to work more slowly than usual.",
+  "While in trains, busses, etc., I often talk with strangers.",
+  "I enjoy children.",
+  "I enjoy gambling for small stakes.",
+  "If given the chance, I could do some things that would be of great benefit to the world.",
+  "I have often met people who were supposed to be experts who were no better than I.",
+  "It makes me feel like a failure when I hear of the success of someone I know well.",
+  "I often think: \"I wish I were a child again.\"",
+  "I am never happier than when alone.",
+  "If given the chance I would make a good leader of people.",
+  "I am embarrassed by dirty stories.",
+  "People generally demand more respect for their own rights than they are willing to allow for others.",
+  "I enjoy social gatherings just to be with people.",
+  "I try to remember good stories to pass them on to other people.",
+  "At one or more times in my life I felt that someone was making me do things by hypnotizing me.",
+  "I find it hard to set aside a task that I have undertaken, even for a short time.",
+  "I am quite often not in on the gossip and talk of the group that I belong to.",
+  "I have often found people jealous of my good ideas, just because they had not thought of them first.",
+  "I enjoy the excitement of a crowd.",
+  "I do not mind meeting strangers.",
+  "Someone has been trying to influence my mind.",
+  "I can remember \"playing sick\" to get out of something.",
+  "My worries seem to disappear when I get into a crowd of lively friends.",
+  "I feel like giving up quickly when things go wrong.",
+  "I like to let people know where I stand on things.",
+  "I have had periods when I felt so full of pep that sleep did not seem necessary for days at a time.",
+  "Whenever possible I avoid being in a crowd.",
+  "I shrink from facing a crisis or difficulty.",
+  "I am apt to pass up something I want to do when others feel that it isn't worth doing.",
+  "I like parties and socials.",
+  "I have often wished I were a member of the opposite sex.",
+  "I am not easily angered.",
+  "I have done some bad things in the past that I never tell anybody about.",
+  "Most people will use somewhat unfair means to get ahead in life.",
+  "It makes me nervous when people ask me personal questions.",
+  "I do not feel I can plan my own future.",
+  "I am not happy with myself the way I am.",
+  "I get angry when my friends or family give me advice on how to live my life.",
+  "I got many beatings when I was a child.",
+  "It bothers me when people say nice things about me.",
+  "I don't like hearing other people give their opinions about life.",
+  "I often have serious disagreements with people who are close to me.",
+  "When things get really bad, I know I can count on my family for help.",
+  "I liked playing \"house\" when I was a child.",
+  "I am not afraid of fire.",
+  "I have sometimes stayed away from another person because I feared doing or saying something I might regret afterwards.",
+  "I can express my true feelings only when I drink.",
+  "I very seldom have spells of the blues.",
+  "I am often said to be hotheaded.",
+  "I wish I could get over worrying about things I have said that may have injured other people's feelings.",
+  "I feel unable to tell anyone all about myself.",
+  "Lightning is one of my fears.",
+  "I like to keep people guessing what I am going to do next.",
+  "My plans have frequently seemed so full of difficulties that I have had to give them up.",
+  "I am afraid to be alone in the dark.",
+  "I have often felt bad about being misunderstood when trying to keep someone from making a mistake.",
+  "A windstorm frightens me.",
+  "I frequently ask people for advice.",
+  "The future is too uncertain for a person to make serious plans.",
+  "Often, even though everything is going fine for me, I feel that I don't care about anything.",
+  "I have no fear of water.",
+  "I often must sleep over a matter before I decide what to do.",
+  "People have often misunderstood my intentions when I was trying to put them right and be helpful.",
+  "I have no trouble swallowing.",
+  "I am usually calm and not easily upset.",
+  "I would certainly enjoy beating criminals at their own game.",
+  "I deserve severe punishment for my sins.",
+  "I am apt to take disappointments so keenly that I can't put them out of my mind.",
+  "It bothers me to have someone watch me at work even though I know I can do it well.",
+  "I am often so annoyed when someone tries to get ahead of me in a line of people that I speak to that person about it.",
+  "At times I think I am no good at all.",
+  "When I was young I often did not go to school even when I should have gone.",
+  "One or more members of my family are very nervous.",
+  "I have at times had to be rough with people who were rude or annoying.",
+  "I worry quite a bit over possible misfortunes.",
+  "I have strong political opinions.",
+  "I would like to be an auto racer.",
+  "It is all right to get around the law if you don't actually break it.",
+  "There are certain people whom I dislike so much that I am inwardly pleased when they are catching it for something that they have done.",
+  "It makes me nervous to have to wait.",
+  "I am apt to pass up something I want to do because others feel that I am not going about it in the right way.",
+  "I was fond of excitement when I was young.",
+  "I am often inclined to go out of my way to win a point with someone who has opposed me.",
+  "I am bothered by people outside, on the streets, in stores, etc., watching me.",
+  "The man who had most to do with me when I was a child, such as my father or stepfather, was very strict with me.",
+  "I used to like to play hopscotch and jump rope.",
+  "I have never seen a vision.",
+  "I have several times had a change of heart about my lifework.",
+  "Except by doctor's orders I never take drugs or sleeping pills.",
+  "I am often sorry because I am so irritable and grouchy.",
+  "In school my marks in classroom behavior were quite regularly bad.",
+  "I am fascinated by fire.",
+  "When I am cornered I tell that portion of the truth which is not likely to hurt me.",
+  "If I were in trouble with several friends who were as guilty as I was, I would rather take the whole blame than give them away.",
+  "I am often afraid of the dark.",
+  "When a man is with a woman he is usually thinking about things related to her sex.",
+  "I am usually very direct with people I am trying to correct or improve.",
+  "I dread the thought of an earthquake.",
+  "I readily become one hundred percent sold on a good idea.",
+  "I usually work things out for myself rather than get someone to show me how.",
+  "I am afraid of finding myself in a closet or small closed space.",
+  "I must admit that I have at times been worried beyond reason over something that really did not matter.",
+  "I do not try to cover up my poor opinion or pity of people so that they won't know how I feel.",
+  "I am a high-strung person.",
+  "I have frequently worked under people who seem to have things arranged so that they get credit for good work but are able to pass mistakes onto those under them.",
+  "I sometimes find it hard to stick up for my rights because I am so reserved.",
+  "Dirt frightens or disgusts me.",
+  "I have a daydream life about which I do not tell other people.",
+  "Some of my family members have quick tempers.",
+  "I cannot do anything well.",
+  "I often feel guilty because I pretend to feel more sorry about something than I really do.",
+  "I strongly defend my own opinions as a rule.",
+  "I have no fear of spiders.",
+  "The future seems hopeless to me.",
+  "The members of my family and my close relatives get along quite well.",
+  "I would like to wear expensive clothes.",
+  "People can pretty easily change my mind, even when I have made a decision about something.",
+  "I am made nervous by certain animals.",
+  "I can stand as much pain as others can.",
+  "Several times I have been the last to give up trying to do a thing.",
+  "It makes me angry to have people hurry me.",
+  "I am not afraid of mice.",
+  "Several times a week I feel as if something dreadful is about to happen.",
+  "I feel tired a good deal of the time.",
+  "I like repairing a door latch.",
+  "Sometimes I am sure that other people can tell what I am thinking.",
+  "I like to read about science.",
+  "I am afraid of being alone in a wide-open place.",
+  "I sometimes feel that I am about to go to pieces.",
+  "A large number of people are guilty of bad sexual conduct.",
+  "I have often been frightened in the middle of the night.",
+  "I am greatly bothered by forgetting where I put things.",
+  "The one to whom I was most attached and whom I most admired as a child was a woman.",
+  "I like adventure stories better than romantic stories.",
+  "Often I get confused and forget what I want to say.",
+  "I am very awkward and clumsy.",
+  "I really like playing sports.",
+  "I hate my whole family.",
+  "Some people think it's hard to get to know me.",
+  "I spend most of my spare time by myself.",
+  "When people do something that makes me angry, I let them know how I feel about it.",
+  "I usually have a hard time deciding what to do.",
+  "People do not find me attractive.",
+  "People are not very kind to me.",
+  "I often feel that I'm not as good as other people.",
+  "I am very stubborn.",
+  "I have enjoyed using marijuana.",
+  "Mental illness is a sign of weakness.",
+  "I have a drug or alcohol problem.",
+  "Ghost or spirits can influence people for good or bad.",
+  "I feel helpless when I have to make some important decisions.",
+  "I always try to be pleasant even when others are upset or critical.",
+  "When I have a problem it helps to talk it over with someone.",
+  "My main goals in life are within my reach.",
+  "I believe that people should keep personal problems to themselves.",
+  "I am not feeling much pressure or stress these days.",
+  "It bothers me greatly to think of making changes in my life.",
+  "My greatest problems are caused by the behavior of someone close to me.",
+  "I hate going to doctors, even when I'm sick.",
+  "Although I am not happy with my life, there is nothing I can do about it.",
+  "Talking over problems and worries with someone is often more helpful than taking drugs or medicine.",
+  "I have habits that are really harmful.",
+  "When problems need to be solved, I usually let other people take charge.",
+  "I recognize several faults in myself that I will not be able to change.",
+  "I am so sick of what I have to do every day that I just want to get out of it all.",
+  "I have recently considered killing myself.",
+  "I often become very irritable when people interrupt my work.",
+  "I often feel I can read other people's minds.",
+  "Having to make important decisions makes me nervous.",
+  "Others tell me I eat too fast.",
+  "Once a week or more I get high or drunk.",
+  "I have had a tragic loss in my life that I know I will never get over.",
+  "Sometimes I get so angry and upset I don't know what comes over me.",
+  "When people ask me to do something I have a hard time saying no.",
+  "I am never happier than when I am by myself.",
+  "My life is empty and meaningless.",
+  "I find it difficult to hold down a job.",
+  "I have made lots of bad mistakes in my life.",
+  "I get angry with myself for giving in to other people so much.",
+  "Lately I have thought a lot about killing myself.",
+  "I like making decisions and assigning jobs to others.",
+  "Even without my family I know there will always be someone there to take care of me.",
+  "At movies, restaurants, or sporting events, I hate to stand in line.",
+  "No one knows it but I have tried to kill myself.",
+  "Everything is going on too fast around me.",
+  "I know I am a burden to others.",
+  "After a bad day, I need a few drinks to relax.",
+  "Much of the trouble I'm having is due to bad luck.",
+  "At times I can't seem to stop talking.",
+  "Sometimes I cut or injure myself on purpose without knowing why.",
+  "I work very long hours, even though my job doesn't require this.",
+  "I usually feel better after a good cry.",
+  "I forget where I leave things.",
+  "If I could live my life over again, I would not change much.",
+  "I get very irritable when people I depend on don't get their work done on time.",
+  "If I get upset, I'm sure to get a headache.",
+  "I like to drive a hard bargain.",
+  "Most men are unfaithful to their wives now and then.",
+  "Lately I have lost my desire to work out my problems.",
+  "I have gotten angry and broken furniture or dishes when I was drinking.",
+  "I work best when I have a definite deadline.",
+  "I have become so angry with someone that I have felt as if I would explode.",
+  "Terrible thoughts about my family come to me at times.",
+  "People tell me I have a problem with alcohol, but I disagree.",
+  "I always have too little time to get things done.",
+  "My thoughts these days turn more and more to death and the hereafter.",
+  "I often keep and save things that I will probably never use.",
+  "I have been so angry at times that I've hurt someone in a physical fight.",
+  "In everything I do lately, I feel that I am being tested.",
+  "I have very little to do with my relatives now.",
+  "I sometimes seem to hear my thoughts being spoken out loud.",
+  "When I am sad, visiting with friends can always pull me out of it.",
+  "Much of what is happening to me now seems to have happened to me before.",
+  "When my life gets difficult, it makes me want to just give up.",
+  "I can't go into a dark room alone, even in my own home.",
+  "I worry a great deal over money.",
+  "The man should be the head of the family.",
+  "The only place where I feel relaxed is in my own home.",
+  "The people I work with are not sympathetic with my problems.",
+  "I am satisfied with the amount of money I make.",
+  "I usually have enough energy to do my work.",
+  "It is hard for me to accept compliments.",
+  "In most marriages one or both partners are unhappy.",
+  "I almost never lose self-control.",
+  "It takes a great deal of effort for me to remember what people tell me these days.",
+  "When I am sad or blue, it is my work that suffers.",
+  "Most married couples don't show much affection for each other."
+];
+
+// ── State ──
+const SHORT_FORM_COUNT = 370;
+let config = { gender: null, form: null };
+let currentIndex = 0;
+let answers = {};
+let totalQuestions = 567;
+let scoringResults = null;
+
+// ── Setup ──
+function setOption(btn) {
+  const group = btn.dataset.group;
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  config[group] = btn.dataset.val;
+  document.getElementById('startBtn').disabled = !(config.gender && config.form);
+}
+
+function startAssessment() {
+  totalQuestions = config.form === 'short' ? SHORT_FORM_COUNT : 567;
+  document.getElementById('totalCount').textContent = totalQuestions;
+  showScreen('assessmentScreen');
+  buildMinimap();
+  showQuestion(0);
+}
+
+function showScreen(id) {
+  ['setupScreen','assessmentScreen','completeScreen','resultsScreen'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = (s === id) ? (s === 'assessmentScreen' || s === 'resultsScreen' ? 'flex' : 'flex') : 'none';
+    if (s === 'assessmentScreen') el.style.display = s === id ? 'flex' : 'none';
+    if (s === 'resultsScreen') el.style.display = s === id ? 'flex' : 'none';
+  });
+}
+
+// ── Assessment ──
+function buildMinimap() {
+  const grid = document.getElementById('minimapGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < totalQuestions; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'minimap-dot';
+    dot.title = `Q${i + 1}`;
+    dot.onclick = () => { showQuestion(i); };
+    grid.appendChild(dot);
+  }
+}
+
+function updateMinimap() {
+  const dots = document.querySelectorAll('.minimap-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.remove('current', 'answered-true', 'answered-false');
+    if (i === currentIndex) dot.classList.add('current');
+    if (answers[i] === true) dot.classList.add('answered-true');
+    if (answers[i] === false) dot.classList.add('answered-false');
+  });
+}
+
+function showQuestion(idx) {
+  if (idx < 0 || idx >= totalQuestions) return;
+  currentIndex = idx;
+  const textEl = document.getElementById('questionText');
+  textEl.classList.add('fading');
+  setTimeout(() => {
+    document.getElementById('questionNumber').textContent = `Question ${idx + 1}`;
+    textEl.textContent = questions[idx];
+    textEl.classList.remove('fading');
+  }, 120);
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('skipBtn').textContent = idx === totalQuestions - 1 ? 'Finish' : 'Skip \u2192';
+  updateProgress();
+  updateMinimap();
+}
+
+function answer(val) {
+  answers[currentIndex] = val;
+  const cls = val ? 'flash-true' : 'flash-false';
+  const btn = val ? document.querySelector('.true-btn') : document.querySelector('.false-btn');
+  btn.classList.add(cls);
+  setTimeout(() => btn.classList.remove(cls), 200);
+
+  if (currentIndex < totalQuestions - 1) {
+    setTimeout(() => showQuestion(currentIndex + 1), 180);
+  } else {
+    setTimeout(checkComplete, 200);
+  }
+}
+
+function navigate(dir) {
+  const next = currentIndex + dir;
+  if (next >= 0 && next < totalQuestions) {
+    showQuestion(next);
+  } else if (next >= totalQuestions) {
+    checkComplete();
+  }
+}
+
+function updateProgress() {
+  const count = Object.keys(answers).filter(k => parseInt(k) < totalQuestions).length;
+  document.getElementById('answeredCount').textContent = count;
+  document.getElementById('progressFill').style.width = (count / totalQuestions) * 100 + '%';
+}
+
+function checkComplete() {
+  const answered = Object.keys(answers).filter(k => parseInt(k) < totalQuestions).length;
+  const trueC = Object.entries(answers).filter(([k,v]) => parseInt(k) < totalQuestions && v === true).length;
+  const falseC = Object.entries(answers).filter(([k,v]) => parseInt(k) < totalQuestions && v === false).length;
+  const unanswered = totalQuestions - answered;
+
+  document.getElementById('trueCount').textContent = trueC;
+  document.getElementById('falseCount').textContent = falseC;
+  document.getElementById('skipCount').textContent = unanswered;
+
+  if (unanswered > 0) {
+    document.getElementById('unansweredNote').textContent =
+      `${unanswered} item${unanswered > 1 ? 's' : ''} unanswered. You can review them or score as-is.`;
+  } else {
+    document.getElementById('unansweredNote').textContent = '';
+  }
+
+  showScreen('completeScreen');
+}
+
+function reviewUnanswered() {
+  showScreen('assessmentScreen');
+  for (let i = 0; i < totalQuestions; i++) {
+    if (answers[i] === undefined) { showQuestion(i); return; }
+  }
+  showQuestion(0);
+}
+
+function toggleMinimap() {
+  document.getElementById('minimapPanel').classList.toggle('open');
+}
+
+// ── Scoring Integration ──
+
+function runScoring() {
+  scoringResults = scoreInstrument(answers, config.gender, config.form, SCORING_DATA, questions);
+  renderResults(scoringResults);
+  showScreen('resultsScreen');
+  window.scrollTo(0, 0);
+}
+
+function goBackToReview() {
+  showScreen('completeScreen');
+}
+
+// ── Results Rendering ──
+
+function tScoreClass(t) {
+  if (t === null || t === undefined) return 'normal';
+  if (t >= 65) return 'elevated';
+  if (t >= 60) return 'borderline';
+  return 'normal';
+}
+
+function tScoreBarWidth(t) {
+  if (t === null) return 0;
+  return Math.min(Math.max((t / 120) * 100, 2), 100);
+}
+
+function renderResults(r) {
+  // Meta
+  document.getElementById('resultsMeta').textContent =
+    `${config.gender === 'male' ? 'Male' : 'Female'} | ${config.form === 'long' ? 'Long Form (567)' : 'Short Form (370)'} | Scored ${new Date().toLocaleString()}`;
+
+  // Summary grid
+  const sg = document.getElementById('summaryGrid');
+  const elClass = r.profileElevation >= 65 ? 'elevated' : r.profileElevation >= 60 ? 'borderline' : 'normal';
+  sg.innerHTML = `
+    <div class="summary-stat">
+      <div class="val ${elClass}">${r.profileElevation !== null ? r.profileElevation.toFixed(1) : 'N/A'}</div>
+      <div class="label">Profile Elevation</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" style="color:var(--true-color)">${r.counts.trueCount}</div>
+      <div class="label">True</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" style="color:var(--false-color)">${r.counts.falseCount}</div>
+      <div class="label">False</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" style="color:var(--text-tertiary)">${r.counts.cantSay}</div>
+      <div class="label">Cannot Say (?)</div>
+    </div>
+  `;
+
+  // Validity tab (inconsistency + validity scales)
+  renderScaleTab('tab-validity', [...r.inconsistencyResults, ...r.validityScales]);
+  renderScaleTab('tab-clinical', r.clinicalScales);
+  renderScaleTab('tab-content', r.contentScales);
+  renderScaleTab('tab-supplementary', r.supplementaryScales);
+  renderCriticalTab(r.criticalItems);
+  setTimeout(() => {
+    renderProfileChart(r.clinicalScales, 'profileCanvas');
+    renderProfileChart([...r.inconsistencyResults, ...r.validityScales], 'validityCanvas');
+  }, 100);
+}
+
+function renderScaleTab(tabId, scales) {
+  const el = document.getElementById(tabId);
+  if (!scales.length) {
+    el.innerHTML = '<p class="no-critical">No data available.</p>';
+    return;
+  }
+
+  let html = `<table class="scale-table">
+    <thead><tr>
+      <th>Scale</th><th>Code</th><th>Raw</th><th>Corr</th><th>T</th><th>%Ans</th><th class="t-bar-cell">T-Score</th>
+    </tr></thead><tbody>`;
+
+  for (const s of scales) {
+    const tc = tScoreClass(s.tScore);
+    const dir = s.direction ? ` (${s.direction})` : '';
+    html += `<tr>
+      <td>${s.description}</td>
+      <td style="font-weight:600;color:var(--text)">${s.code}${dir}</td>
+      <td>${s.raw}</td>
+      <td>${s.corrected !== null && s.corrected !== undefined ? s.corrected : '-'}</td>
+      <td class="t-score-cell t-${tc}">${s.tScore !== null ? s.tScore : '-'}</td>
+      <td>${s.pctAnswered !== undefined ? s.pctAnswered + '%' : '-'}</td>
+      <td class="t-bar-cell">
+        <div class="t-bar-wrap">
+          <div class="t-bar-fill ${tc}" style="width:${tScoreBarWidth(s.tScore)}%"></div>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderCriticalTab(criticalItems) {
+  const el = document.getElementById('tab-critical');
+  if (!criticalItems.length) {
+    el.innerHTML = '<p class="no-critical">No critical items endorsed.</p>';
+    return;
+  }
+
+  let totalEndorsed = 0;
+  let html = '';
+  for (const group of criticalItems) {
+    totalEndorsed += group.endorsed.length;
+    html += `<div class="critical-group">
+      <div class="critical-group-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <h4>${group.name}</h4>
+        <span class="critical-badge">${group.endorsed.length} / ${group.total}</span>
+      </div>
+      <div class="critical-items-list">`;
+
+    for (const item of group.endorsed) {
+      html += `<div class="critical-item-row">
+        <span class="critical-item-num">#${item.num}</span>
+        <span class="critical-item-resp">${item.response}</span>
+        <span>${item.text}</span>
+      </div>`;
+    }
+
+    html += '</div></div>';
+  }
+
+  el.innerHTML = `<div class="summary-stat" style="margin-bottom:1.5rem;display:inline-block;padding:1rem 2rem">
+    <div class="val elevated">${totalEndorsed}</div>
+    <div class="label">Critical Items Endorsed</div>
+  </div>` + html;
+}
+
+// ── Profile Chart (Canvas) ──
+
+function renderProfileChart(scales, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = (rect.width - 48) * dpr;
+  canvas.height = 320 * dpr;
+  canvas.style.width = (rect.width - 48) + 'px';
+  canvas.style.height = '320px';
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width - 48;
+  const h = 320;
+  const pad = { top: 30, right: 30, bottom: 50, left: 50 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  // Clear
+  ctx.clearRect(0, 0, w, h);
+
+  // T-score range: 30-120
+  const minT = 30, maxT = 120;
+  const yForT = (t) => pad.top + plotH - ((t - minT) / (maxT - minT)) * plotH;
+
+  // Grid lines
+  ctx.strokeStyle = '#E7E5E4';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  for (let t = 30; t <= 120; t += 10) {
+    const y = yForT(t);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+
+    ctx.fillStyle = '#A8A29E';
+    ctx.font = '11px Inter, system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText(t, pad.left - 8, y + 4);
+  }
+  ctx.setLineDash([]);
+
+  // Threshold lines
+  const drawThreshold = (t, color, label) => {
+    const y = yForT(t);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color;
+    ctx.font = '10px Inter, system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, w - pad.right + 4, y + 3);
+  };
+
+  drawThreshold(65, '#9A4A3Aaa', 'T=65');
+  drawThreshold(50, '#4A556866', 'T=50');
+
+  // Data points
+  const validScales = scales.filter(s => s.tScore !== null);
+  if (!validScales.length) return;
+
+  const step = plotW / Math.max(validScales.length - 1, 1);
+
+  // Line
+  ctx.strokeStyle = '#4A5568';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  validScales.forEach((s, i) => {
+    const x = pad.left + i * step;
+    const y = yForT(Math.min(Math.max(s.tScore, minT), maxT));
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Dots + labels
+  validScales.forEach((s, i) => {
+    const x = pad.left + i * step;
+    const t = Math.min(Math.max(s.tScore, minT), maxT);
+    const y = yForT(t);
+    const tc = tScoreClass(s.tScore);
+    const color = tc === 'elevated' ? '#9A4A3A' : tc === 'borderline' ? '#8A6A3A' : '#4A5568';
+
+    // Subtle halo
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = color + '18';
+    ctx.fill();
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // T value
+    ctx.fillStyle = color;
+    ctx.font = '600 11px Inter, system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.tScore, x, y - 12);
+
+    // Scale code
+    ctx.fillStyle = '#78716C';
+    ctx.font = '11px Inter, system-ui';
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.translate(x, h - pad.bottom + 16);
+    ctx.fillText(s.code + (s.direction || ''), 0, 0);
+    ctx.restore();
+  });
+}
+
+// ── Tab Switching ──
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+  const btn = [...document.querySelectorAll('.tab-btn')].find(b => b.textContent.toLowerCase().includes(tabName.toLowerCase().substring(0,4)));
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById('tab-' + tabName);
+  if (panel) panel.classList.add('active');
+
+  // Re-render charts when profile tab is shown
+  if (tabName === 'profile' && scoringResults) {
+    setTimeout(() => {
+      renderProfileChart(scoringResults.clinicalScales, 'profileCanvas');
+      renderProfileChart([...scoringResults.inconsistencyResults, ...scoringResults.validityScales], 'validityCanvas');
+    }, 50);
+  }
+}
+
+// ── Export Functions ──
+
+function exportCSV() {
+  if (!scoringResults) return;
+  const r = scoringResults;
+  let csv = 'Category,Scale,Code,Raw,Corrected,T-Score,% Answered\n';
+
+  const allRows = [
+    ...r.inconsistencyResults.map(s => ({...s, category: 'Inconsistency'})),
+    ...r.validityScales.map(s => ({...s, category: 'Validity'})),
+    ...r.clinicalScales.map(s => ({...s, category: 'Clinical'})),
+    ...r.contentScales.map(s => ({...s, category: 'Content'})),
+    ...r.supplementaryScales.map(s => ({...s, category: 'Supplementary'})),
+  ];
+
+  for (const s of allRows) {
+    csv += `"${s.category}","${s.description}","${s.code}",${s.raw},${s.corrected ?? ''},${s.tScore ?? ''},${s.pctAnswered ?? ''}\n`;
+  }
+
+  csv += `\nProfile Elevation,${r.profileElevation}\n`;
+  csv += `Gender,${config.gender}\nForm,${config.form}\nDate,${r.timestamp}\n`;
+  csv += `\nItem Responses\nItem,Response\n`;
+  for (let i = 0; i < totalQuestions; i++) {
+    csv += `${i + 1},${answers[i] === true ? 'T' : answers[i] === false ? 'F' : '?'}\n`;
+  }
+
+  downloadFile(csv, `scoring_report_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
+}
+
+function exportJSON() {
+  if (!scoringResults) return;
+  const data = JSON.stringify(scoringResults, null, 2);
+  downloadFile(data, `scoring_report_${new Date().toISOString().slice(0,10)}.json`, 'application/json');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Keyboard ──
+
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('assessmentScreen').style.display === 'none') return;
+  switch(e.key) {
+    case 'ArrowLeft': e.preventDefault(); answer(false); break;
+    case 'ArrowRight': e.preventDefault(); answer(true); break;
+    case 'ArrowUp': e.preventDefault(); navigate(-1); break;
+    case 'ArrowDown': e.preventDefault(); navigate(1); break;
+    case 'm': toggleMinimap(); break;
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('minimapPanel');
+  const toggle = document.getElementById('minimapToggle');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && !toggle.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+});
+
+// Handle resize for charts
+window.addEventListener('resize', () => {
+  if (scoringResults && document.getElementById('resultsScreen').style.display !== 'none') {
+    const activePanel = document.querySelector('.tab-panel.active');
+    if (activePanel && activePanel.id === 'tab-profile') {
+      renderProfileChart(scoringResults.clinicalScales, 'profileCanvas');
+      renderProfileChart([...scoringResults.inconsistencyResults, ...scoringResults.validityScales], 'validityCanvas');
+    }
+  }
+});
+</script>
+</body>
+</html>
