@@ -239,13 +239,20 @@ async function submitReport(report) {
   }
 
   try {
-    const resp = await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+    // Use a form POST via hidden iframe to avoid CORS issues with Apps Script.
+    // Apps Script redirects on POST which fetch can't follow cross-origin,
+    // so we use the beacon API with text/plain (allowed without preflight).
+    const sent = navigator.sendBeacon(GOOGLE_SHEETS_WEBHOOK_URL, JSON.stringify(report));
+    if (sent) {
+      return { ok: true, method: "sheets" };
+    }
+    // Fallback: try fetch with no-cors and text/plain
+    await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
       method: "POST",
-      mode: "no-cors", // Apps Script web apps require no-cors from browser
-      headers: { "Content-Type": "application/json" },
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(report),
     });
-    // no-cors means we can't read the response, but if fetch didn't throw, it was sent
     return { ok: true, method: "sheets" };
   } catch (err) {
     console.warn("Google Sheets submission failed, results saved to localStorage:", err);

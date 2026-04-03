@@ -18,7 +18,9 @@
 function doPost(e) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    var data = JSON.parse(e.postData.contents);
+    var raw = e.postData.contents;
+    // Handle both application/json and text/plain (from sendBeacon)
+    var data = JSON.parse(raw);
 
     // Auto-create headers if sheet is empty
     if (sheet.getLastRow() === 0) {
