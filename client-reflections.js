@@ -7,7 +7,7 @@
 // Paste your Google Apps Script web app URL here after deploying.
 // See google-apps-script.js for setup instructions.
 
-const GOOGLE_SHEETS_WEBHOOK_URL = ""; // e.g. "https://script.google.com/macros/s/AKfycbx.../exec"
+const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxBKOv1BDsrN3ctN_LDkY-Fe0jo9pyOavUBbsG9q4P3RbjluFnjV8T4izn0AgVaoTe7/exec";
 
 // ─── Overall Tone (from profile elevation) ───────────────────────────────────
 
