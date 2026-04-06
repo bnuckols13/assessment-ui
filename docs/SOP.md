@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Document** | ASSESS-SOP |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Last Updated** | 2026-04-06 |
 | **Author** | Brian Nuckols + Claude |
 | **Status** | Active — Production |
@@ -16,6 +16,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2026-04-06 | Added React clinician dashboard (Phase 7). New interpretive analysis system with validity rules, code types, scale interpretations, content corroboration. Updated deployment to include Vite build step. Three-app architecture. |
 | 1.0.0 | 2026-04-06 | Initial SOP. Full system documented: scoring engine, client reflection, clinician dashboard, EmailJS delivery, GitHub Pages deployment, safety features, design system. Phases 1-6 complete. |
 
 ---
@@ -46,7 +47,8 @@
 > Covers sending assessments to clients, reviewing results, development workflow, deployment, and troubleshooting.
 
 **Client URL:** https://bnuckols13.github.io/assessment-ui/client.html
-**Clinician URL:** https://bnuckols13.github.io/assessment-ui/index.html
+**Clinician URL (legacy):** https://bnuckols13.github.io/assessment-ui/index.html
+**Dashboard URL:** https://bnuckols13.github.io/assessment-ui/dashboard/
 
 ---
 
@@ -130,17 +132,38 @@ When a client clicks "View Your Reflection," you receive an email with:
 | 55-64 | Mild | Some areas of stress |
 | < 55 | Normal | Within expected ranges |
 
-### Using the Clinician Dashboard
+### Using the Legacy Clinician View
 
-For in-office use or deeper analysis, open:
+For basic scoring tables, open:
 https://bnuckols13.github.io/assessment-ui/index.html
 
-This version shows:
-- Full scale tables with T-scores, raw, corrected, % answered
-- Color-coded T-score bars
-- Profile chart (canvas line graph with T=65 threshold)
-- Critical items with endorsed item text
-- CSV and JSON export
+This version shows full scale tables with T-scores but no interpretation.
+
+### Using the Clinician Dashboard (Recommended)
+
+For interpretive analysis and clinical decision support, open:
+https://bnuckols13.github.io/assessment-ui/dashboard/
+
+**Data input options:**
+1. **Paste answer string:** Copy the `answer_string` from the email report → paste into the textarea → select gender → click "Score & Interpret"
+2. **Load from localStorage:** If a client completed the assessment on the same device, their report auto-appears in the "Recent Assessments" list. Click to load.
+
+**Clinical Brief (press `D` to toggle views):**
+- Step 1: **Validity** — Is this profile interpretable? Traffic light + guidance text.
+- Step 2: **Code Type** — Two-point code type with interpretive narrative, differentials, treatment considerations.
+- Step 3: **Elevations** — Top elevated clinical scales with interpretive paragraphs.
+- Step 4: **Critical Items** — Safety level + endorsement counts.
+- Right sidebar: Profile elevation, T/F/? counts, clinical profile chart.
+
+**Detail View (8 accordion sections):**
+- Validity Profile — chart + table + decision rules
+- Clinical Profile — chart + table + scale-by-scale interpretations + behavioral correlates
+- Code Type Analysis — full narrative + differentials + treatment considerations
+- Content Scales — table + interpretations for elevated scales
+- Content Corroboration — does the content profile support the clinical elevations?
+- Supplementary Scales — table
+- Critical Items — expandable groups with item text
+- Raw Data — config summary + JSON export
 
 ---
 
@@ -184,16 +207,24 @@ Items 506, 520, and 524 represent **active suicidal ideation**:
 ### Local Development
 
 ```bash
+# Client + legacy clinician (vanilla)
 cd ~/assessment-ui
 python3 -m http.server 3002
 # Open http://localhost:3002/client.html or /index.html
+
+# Dashboard (React)
+cd ~/assessment-ui/dashboard
+npx vite --port 5175
+# Open http://localhost:5175/assessment-ui/dashboard/
 ```
 
-Or use the Claude Preview tool with the launch.json config (port 3002).
+Or use the Claude Preview tool with launch.json configs: `assessment` (port 3002) or `dashboard` (port 5175).
 
 ### File Editing
 
-All files are vanilla HTML/CSS/JS — edit directly, refresh browser to see changes. No build step.
+**Vanilla files** (client.html, index.html, scoring-*.js): Edit directly, refresh browser. No build step.
+
+**Dashboard** (`dashboard/src/`): Edit React/TypeScript files, Vite HMR auto-reloads. Run `npm run build` to verify production build before pushing.
 
 ### Key Files
 
@@ -201,9 +232,16 @@ All files are vanilla HTML/CSS/JS — edit directly, refresh browser to see chan
 |------|---------|-------------|
 | `client.html` | Client assessment + reflection | Changing client UX, questions, flow |
 | `client-reflections.js` | Reflection themes, safety, EmailJS | Changing reflection copy, adding themes, updating delivery |
-| `index.html` | Clinician scoring dashboard | Changing clinician report UI |
+| `index.html` | Legacy clinician scoring | Changing basic scoring UI |
 | `scoring-engine.js` | Scoring functions | Fixing scoring bugs, adding scale types |
 | `scoring-data.js` | Scale definitions + norms | Updating keyed items, transform tables, critical groups |
+| `dashboard/src/App.tsx` | Dashboard data orchestrator | Changing dashboard flow or data routing |
+| `dashboard/src/data/code-types.ts` | 2-point code type narratives | Adding/editing code type interpretations |
+| `dashboard/src/data/scale-interpretations.ts` | Scale narratives | Editing interpretive text for clinical/content scales |
+| `dashboard/src/data/validity-guidance.ts` | Validity rules | Adding/editing validity decision rules |
+| `dashboard/src/data/content-corroboration.ts` | Content-to-clinical mapping | Editing corroboration interpretation text |
+| `dashboard/src/lib/validity-rules.ts` | Validity analysis engine | Changing rule logic or adding new rules |
+| `dashboard/src/components/` | UI components | Changing dashboard layout, visualizations |
 
 ### Testing
 
@@ -222,9 +260,12 @@ Before pushing changes:
 ### Auto-Deploy
 
 Every `git push` to `main` triggers GitHub Actions:
-1. Actions workflow: `.github/workflows/deploy.yml`
-2. Uploads all files to GitHub Pages
-3. Live in ~20 seconds
+1. Checkout repo
+2. Set up Node 20, install dashboard dependencies
+3. Build dashboard: `cd dashboard && npm ci && npm run build`
+4. Assemble `_site/`: root vanilla files + `dashboard/dist/` → `_site/dashboard/`
+5. Deploy `_site/` to GitHub Pages
+6. Live in ~30 seconds
 
 ### Manual Deploy Steps
 
@@ -244,7 +285,11 @@ gh run list --repo bnuckols13/assessment-ui --limit 1
 
 ### What Gets Deployed
 
-Everything in the repo root. No build step — files are served as-is. The `.github/` and `docs/` directories are deployed but not user-facing.
+The GitHub Actions workflow assembles a `_site/` directory containing:
+- Root vanilla files (client.html, index.html, scoring-*.js, etc.) — served as-is
+- `dashboard/dist/` → `_site/dashboard/` — built React app
+
+The `.github/` and `docs/` directories are included but not user-facing.
 
 ---
 

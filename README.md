@@ -4,30 +4,34 @@ Clinical assessment system with dual interfaces: a client-facing guided reflecti
 
 ## Quick Start
 
-No build step. Open in any browser:
-
 ```
-# Local development
+# Client + legacy clinician (vanilla, no build step)
 python3 -m http.server 3002
 # Client: http://localhost:3002/client.html
 # Clinician: http://localhost:3002/index.html
+
+# Dashboard (React)
+cd dashboard && npm install && npx vite --port 5175
+# Dashboard: http://localhost:5175/assessment-ui/dashboard/
 ```
 
 ## Production
 
 - **Client:** https://bnuckols13.github.io/assessment-ui/client.html
 - **Clinician:** https://bnuckols13.github.io/assessment-ui/index.html
+- **Dashboard:** https://bnuckols13.github.io/assessment-ui/dashboard/
 
-Auto-deploys on push to `main` via GitHub Actions.
+Auto-deploys on push to `main` via GitHub Actions (includes Vite build step for dashboard).
 
 ## Architecture
 
 ```
 client.html              Client assessment + guided reflection (no clinical data)
 client-reflections.js    Reflection themes, safety checks, EmailJS delivery
-index.html               Clinician scoring dashboard (full T-scores, charts)
-scoring-engine.js        Pure scoring functions (shared)
+index.html               Legacy clinician scoring (T-score tables, charts)
+scoring-engine.js        Pure scoring functions (shared by all)
 scoring-data.js          Scale definitions + norm tables (shared)
+dashboard/               React clinician dashboard (interpretive analysis)
 docs/SOP.md              Operational playbook
 ```
 
@@ -51,14 +55,23 @@ Pure JS functions — `(answers, config) → results`. No dependencies, no DOM.
 4. Crisis resources (988 Lifeline) shown automatically when suicidal ideation items are endorsed
 5. Full scored report emailed to clinician via EmailJS
 
-### Clinician Dashboard
+### Clinician Dashboard (React)
 
-Full scoring report with:
-- T-score tables (validity, clinical, content, supplementary)
-- Color-coded T-score bars
-- Canvas profile charts with T=65 threshold
-- Critical items with endorsed item text
-- CSV/JSON export
+Interpretive analysis with two views (toggle with Brief/Detail buttons or press `D`):
+
+**Clinical Brief** — 4-step no-scroll decision flow:
+1. Validity assessment (rule-based, traffic light)
+2. Two-point code type identification + narrative
+3. Elevated scale interpretations
+4. Critical items + safety flagging
+
+**Detail View** — 8 collapsible sections with charts, tables, scale-by-scale interpretations, content corroboration, and JSON export.
+
+Data input: paste answer string from email or load from localStorage.
+
+### Legacy Clinician View
+
+Basic T-score tables, profile chart, CSV/JSON export. Still available at `/index.html`.
 
 ## Design System
 

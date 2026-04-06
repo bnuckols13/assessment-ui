@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | **Project** | Personal Reflection Inventory (Clinical Assessment System) |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Last Updated** | 2026-04-06 |
 | **Author** | Brian Nuckols + Claude |
 | **Status** | Active — Production |
@@ -29,6 +29,7 @@
 |----------|-------|
 | Client URL | https://bnuckols13.github.io/assessment-ui/client.html |
 | Clinician URL | https://bnuckols13.github.io/assessment-ui/index.html |
+| Dashboard URL | https://bnuckols13.github.io/assessment-ui/dashboard/ |
 | GitHub | github.com/bnuckols13/assessment-ui |
 | Deployment | GitHub Pages (auto-deploy on push to main) |
 | Email Delivery | EmailJS (service_ym3061l / template_zdn60cd) |
@@ -42,12 +43,14 @@
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Vanilla HTML/CSS/JS (no build step) |
+| Frontend | Vanilla HTML/CSS/JS (client + clinician) |
+| Dashboard | React 18 + TypeScript + Vite (in `dashboard/`) |
 | Scoring | Pure JS engine — `scoring-engine.js` + `scoring-data.js` |
+| Charting | Recharts (dashboard only) |
 | Design | Inter font, warm clinical palette (cream/earth tones) |
 | Delivery | EmailJS (client-side, no server) |
-| Hosting | GitHub Pages (static files) |
-| CI/CD | GitHub Actions (`.github/workflows/deploy.yml`) |
+| Hosting | GitHub Pages (static files + built React app) |
+| CI/CD | GitHub Actions — builds dashboard, assembles `_site/`, deploys |
 
 ### File Map
 
@@ -60,28 +63,59 @@ assessment-ui/
 │
 ├── client.html                  ← CLIENT-FACING assessment + reflection
 ├── client-reflections.js        ← Reflection logic, safety checks, EmailJS delivery
-├── index.html                   ← CLINICIAN-FACING scoring dashboard
-├── scoring-engine.js            ← Pure scoring functions (shared by both)
+├── index.html                   ← CLINICIAN-FACING basic scoring (legacy)
+├── scoring-engine.js            ← Pure scoring functions (shared by all)
 ├── scoring-data.js              ← Scale definitions, transforms, norms (shared)
 │
-├── google-apps-script.js        ← Google Sheets webhook (deprecated, kept for reference)
-├── .github/workflows/deploy.yml ← GitHub Pages auto-deploy
+├── dashboard/                   ← CLINICIAN DASHBOARD (React + Vite)
+│   ├── index.html               ← Vite entry point
+│   ├── package.json             ← Dependencies (React 18, Recharts, TypeScript)
+│   ├── vite.config.ts           ← Build config (base: /assessment-ui/dashboard/)
+│   └── src/
+│       ├── main.tsx, App.tsx    ← Entry + data orchestrator
+│       ├── index.css            ← Design system (warm clinical palette)
+│       ├── lib/
+│       │   ├── scoring-bridge.ts    ← Loads vanilla JS scoring engine via ?raw import
+│       │   ├── clinical-utils.ts    ← T-score classification, code type extraction
+│       │   ├── validity-rules.ts    ← Validity decision engine (rules → guidance)
+│       │   └── types.ts            ← TypeScript interfaces
+│       ├── components/
+│       │   ├── DataEntry/           ← Paste answer string or load from localStorage
+│       │   ├── ClinicalBrief/       ← 4-step decision flow (no-scroll)
+│       │   ├── DetailView/          ← Scrollable accordion sections
+│       │   ├── ValidityPanel/       ← Protocol validity assessment
+│       │   ├── CodeTypePanel/       ← 2-point code type + narrative
+│       │   ├── ProfileChart/        ← Recharts line chart with threshold bands
+│       │   ├── ScaleTable/          ← Reusable T-score table
+│       │   ├── ContentCorroboration/ ← Content ↔ clinical comparison
+│       │   └── CriticalItems/       ← Grouped critical items + safety
+│       └── data/
+│           ├── questions.ts         ← 567 item texts (extracted from HTML)
+│           ├── code-types.ts        ← ~28 two-point code type narratives
+│           ├── scale-interpretations.ts ← Clinical + content scale narratives
+│           ├── validity-guidance.ts  ← Validity rules + clinical guidance
+│           └── content-corroboration.ts ← Content-to-clinical mappings
+│
+├── google-apps-script.js        ← Google Sheets webhook (deprecated)
+├── .github/workflows/deploy.yml ← Builds dashboard + deploys all to GitHub Pages
 ├── .claude/launch.json          ← Local dev server config
 └── .gitignore
 ```
 
-### Two-App Architecture
+### Three-App Architecture
 
-The system has two completely separate user experiences sharing the same scoring engine:
+The system has three separate user experiences sharing the same scoring engine:
 
-| | Client (`client.html`) | Clinician (`index.html`) |
-|---|---|---|
-| **Audience** | Patients via text/email link | Brian (in-office or remote) |
-| **Assessment** | Same 567/370 items, same UX | Same |
-| **Post-scoring** | Guided reflection (no clinical data) | Full T-scores, tables, charts |
-| **Delivery** | EmailJS sends report to Brian | On-screen only |
-| **Safety** | 988 crisis banner when DSI endorsed | Critical items with item text |
-| **Name collection** | Yes (first name, last initial) | No |
+| | Client (`client.html`) | Clinician (`index.html`) | Dashboard (`dashboard/`) |
+|---|---|---|---|
+| **Audience** | Patients via text/email link | Brian (basic scoring) | Brian (interpretive analysis) |
+| **Stack** | Vanilla HTML/JS | Vanilla HTML/JS | React 18 + TypeScript + Vite |
+| **Assessment** | Same 567/370 items | Same | N/A — consumes answer strings |
+| **Post-scoring** | Guided reflection (no clinical data) | T-score tables, profile chart | Full interpretive dashboard |
+| **Features** | Non-clinical themes, crisis resources | Raw T-scores, CSV/JSON export | Validity analysis, code types, scale interpretations, content corroboration, profile charts |
+| **Delivery** | EmailJS sends report to Brian | On-screen only | On-screen + JSON export |
+| **Safety** | 988 crisis banner when DSI endorsed | Critical items with item text | Safety flagging with clinical guidance |
+| **Data input** | User takes assessment | User takes assessment | Paste answer string or load from localStorage |
 
 ### Scoring Engine
 
@@ -102,6 +136,18 @@ The system has two completely separate user experiences sharing the same scoring
 - 2 inconsistency scales (VRIN: 67 rules, TRIN: 23 rules)
 - 10 critical item groups (Koss-Butcher & Lachar-Wrobel)
 - Gender-specific transform tables for all scales
+
+### Clinician Dashboard
+
+**`dashboard/`** — React + Vite interpretive analysis app
+
+- **Two views:** Clinical Brief (4-step no-scroll decision flow) + Detail View (scrollable accordions). Toggle with Brief/Detail buttons or press `D`.
+- **Scoring bridge:** `scoring-bridge.ts` loads the vanilla `scoring-engine.js` + `scoring-data.js` via Vite `?raw` imports and `new Function()` evaluation. Zero changes to the vanilla files.
+- **Clinical intelligence:** Typed data files in `dashboard/src/data/` containing validity rules, ~28 two-point code type narratives, scale-by-scale interpretations (clinical + content), and content-to-clinical corroboration mappings.
+- **Visualizations:** Recharts line charts with T=65/T=80 threshold bands for clinical and validity profiles.
+- **Data input:** Paste T/F/? answer string from email report, or auto-load from localStorage (`assessment_*` keys saved by `client-reflections.js`).
+- **Build:** `npm run build` in `dashboard/` → `dist/` output. GitHub Actions assembles `_site/` with root vanilla files + `dashboard/dist/`.
+- **Local dev:** `cd dashboard && npx vite --port 5175` or use the `dashboard` launch.json entry.
 
 ### Client Reflection Logic
 
@@ -138,7 +184,7 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 
 ## Current State
 
-### Deployed Features (v1.0.0)
+### Deployed Features (v1.1.0)
 
 - 567-item True/False assessment with keyboard nav, progress bar, minimap
 - Short form (370) and long form (567) support
@@ -148,8 +194,9 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 - 10 critical item groups with item-level tracking
 - Profile elevation (mean T of 8 clinical scales)
 - **Client version:** Guided reflection, crisis resources, EmailJS delivery
-- **Clinician version:** Full T-score tables, profile charts, CSV/JSON export
-- GitHub Pages deployment with auto-deploy on push
+- **Clinician version (legacy):** Full T-score tables, profile charts, CSV/JSON export
+- **Clinician dashboard (new):** React interpretive analysis with validity rules, 2-point code types, scale interpretations, content corroboration, Recharts profile charts, Brief/Detail two-view system
+- GitHub Pages deployment with auto-deploy on push (includes Vite build step for dashboard)
 
 ### Active Configuration
 
@@ -171,6 +218,7 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 | 4 | Client-facing version (reflection, safety, no clinical data) | Done | Apr 3 |
 | 5 | Deployment (GitHub Pages) + delivery (EmailJS) | Done | Apr 3 |
 | 6 | Documentation + version control (ICNS-pattern) | Done | Apr 6 |
+| 7 | Clinician dashboard (React interpretive analysis) | Done | Apr 6 |
 
 ---
 
@@ -204,8 +252,10 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 
 ### Deploy
 
-- `git push` to main → GitHub Actions auto-deploys (~20s)
-- No build step needed — static files served directly
+- `git push` to main → GitHub Actions builds dashboard + deploys all (~30s)
+- Workflow: checkout → Node 20 → `cd dashboard && npm ci && npm run build` → assemble `_site/` → deploy
+- Root vanilla files (client.html, index.html, scoring-*.js) served as-is
+- Dashboard built output served from `_site/dashboard/`
 - All secrets (EmailJS keys) are in client-side JS (acceptable for this use case)
 
 ---
@@ -223,3 +273,9 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 | Profile elevation = mean of 8 scales | Standard definition (Hs, D, Hy, Pd, Pa, Pt, Sc, Ma), excludes Mf and Si |
 | Short form caps at item 370 | Standard abbreviated form; items above 370 are not scored |
 | No server, no database | Clinical data stays in the email — no PHI stored on any server |
+| React + Vite for dashboard | Needed component architecture for interpretive UI complexity; vanilla JS impractical for this scope |
+| Scoring bridge via ?raw import | Loads vanilla JS files as strings, evaluates in shared scope — zero changes to scoring engine |
+| Interpretive data as TypeScript | Code types, scale narratives, validity rules are typed objects — IDE support, inline docs, type safety |
+| Recharts over D3 | Declarative React components for line/bar charts; D3 overkill without network graphs |
+| Brief + Detail two-view pattern | Follows ICNS clinical workflow; Brief for 60-second pre-session prep, Detail for deep analysis |
+| No React Router | Single-page tool with view toggle — router adds no value |
