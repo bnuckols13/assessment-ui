@@ -36,6 +36,10 @@ export interface CriticalItemGroup {
   total: number;
 }
 
+export interface SubscaleResult extends ScaleResult {
+  parentCode: string;
+}
+
 export interface ScoringResults {
   version: string;
   config: {
@@ -54,6 +58,7 @@ export interface ScoringResults {
   clinicalScales: ScaleResult[];
   contentScales: ScaleResult[];
   supplementaryScales: ScaleResult[];
+  subscaleResults?: SubscaleResult[];
   criticalItems: CriticalItemGroup[];
   profileElevation: number | null;
   allScaleResults: ScaleResult[];
@@ -91,7 +96,29 @@ export interface StoredReport {
   version: string;
 }
 
-export type ViewMode = 'entry' | 'brief' | 'detail';
+export type ViewMode = 'entry' | 'brief' | 'detail' | 'session';
+
+export interface ScaleDelta {
+  code: string;
+  name: string;
+  currentT: number | null;
+  previousT: number | null;
+  delta: number | null;
+  direction: 'improved' | 'worsened' | 'stable' | 'unknown';
+}
+
+export interface ComparisonData {
+  previousName: string;
+  previousTimestamp: string;
+  clinicalDeltas: ScaleDelta[];
+  contentDeltas: ScaleDelta[];
+  elevationDelta: number | null;
+  currentElevation: number | null;
+  previousElevation: number | null;
+  previousCodeType: string;
+  currentCodeType: string;
+  previousClinicalScales: ScaleResult[];
+}
 
 export type ValiditySeverity = 'valid' | 'caution' | 'warning' | 'invalid';
 

@@ -190,6 +190,18 @@ function profileElevation(scaleResults, elevationNames) {
   return count > 0 ? Math.round((sum / count) * 10) / 10 : null;
 }
 
+// ─── 5.5 Harris-Lingoes Subscales ───────────────────────────────────────────
+
+function scoreSubscales(answers, subscales, gender, lastItem) {
+  const results = [];
+  for (const scale of subscales) {
+    const result = scoreKeyedScale(answers, scale, gender, 0, lastItem);
+    result.parentCode = scale.parentCode || "";
+    results.push(result);
+  }
+  return results;
+}
+
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
 function scoreInstrument(answers, gender, formLength, data, questionTexts) {
@@ -232,6 +244,11 @@ function scoreInstrument(answers, gender, formLength, data, questionTexts) {
     answers, data.criticalItemGroups, questionTexts, lastItem
   );
 
+  // 5.5 Harris-Lingoes subscales (if data available)
+  const subscaleResults = data.harrisLingoesSubscales
+    ? scoreSubscales(answers, data.harrisLingoesSubscales, gender, lastItem)
+    : [];
+
   // Group results by category
   const validityScales = scaleResults.filter(r => r.category === "validity");
   const clinicalScales = scaleResults.filter(r => r.category === "clinical");
@@ -247,6 +264,7 @@ function scoreInstrument(answers, gender, formLength, data, questionTexts) {
     clinicalScales,
     contentScales,
     supplementaryScales: supplementaryScalesResult,
+    subscaleResults,
     criticalItems,
     profileElevation: elevation,
     allScaleResults: scaleResults,

@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | **Project** | Personal Reflection Inventory (Clinical Assessment System) |
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Last Updated** | 2026-04-06 |
 | **Author** | Brian Nuckols + Claude |
 | **Status** | Active — Production |
@@ -80,12 +80,14 @@ assessment-ui/
 │       │   ├── validity-rules.ts    ← Validity decision engine (rules → guidance)
 │       │   └── types.ts            ← TypeScript interfaces
 │       ├── components/
-│       │   ├── DataEntry/           ← Paste answer string or load from localStorage
-│       │   ├── ClinicalBrief/       ← 4-step decision flow (no-scroll)
-│       │   ├── DetailView/          ← Scrollable accordion sections
+│       │   ├── DataEntry/           ← Paste answer string, load from localStorage, or URL params
+│       │   ├── ClinicalBrief/       ← 4-step decision flow (no-scroll) with validity gating
+│       │   ├── DetailView/          ← Scrollable accordion sections with validity gating
+│       │   ├── SessionView/         ← Shared clinician-client screen with discussion prompts
+│       │   ├── ComparisonPanel/     ← Longitudinal delta T-scores and code type shifts
 │       │   ├── ValidityPanel/       ← Protocol validity assessment
 │       │   ├── CodeTypePanel/       ← 2-point code type + narrative
-│       │   ├── ProfileChart/        ← Recharts line chart with threshold bands
+│       │   ├── ProfileChart/        ← Recharts line chart with dual-line comparison
 │       │   ├── ScaleTable/          ← Reusable T-score table
 │       │   ├── ContentCorroboration/ ← Content ↔ clinical comparison
 │       │   └── CriticalItems/       ← Grouped critical items + safety
@@ -93,6 +95,8 @@ assessment-ui/
 │           ├── questions.ts         ← 567 item texts (extracted from HTML)
 │           ├── code-types.ts        ← ~28 two-point code type narratives
 │           ├── scale-interpretations.ts ← Clinical + content scale narratives
+│           ├── subscale-interpretations.ts ← 28 Harris-Lingoes subscale narratives
+│           ├── session-themes.ts    ← 10 non-clinical discussion themes for Session View
 │           ├── validity-guidance.ts  ← Validity rules + clinical guidance
 │           └── content-corroboration.ts ← Content-to-clinical mappings
 │
@@ -112,10 +116,10 @@ The system has three separate user experiences sharing the same scoring engine:
 | **Stack** | Vanilla HTML/JS | Vanilla HTML/JS | React 18 + TypeScript + Vite |
 | **Assessment** | Same 567/370 items | Same | N/A — consumes answer strings |
 | **Post-scoring** | Guided reflection (no clinical data) | T-score tables, profile chart | Full interpretive dashboard |
-| **Features** | Non-clinical themes, crisis resources | Raw T-scores, CSV/JSON export | Validity analysis, code types, scale interpretations, content corroboration, profile charts |
-| **Delivery** | EmailJS sends report to Brian | On-screen only | On-screen + JSON export |
-| **Safety** | 988 crisis banner when DSI endorsed | Critical items with item text | Safety flagging with clinical guidance |
-| **Data input** | User takes assessment | User takes assessment | Paste answer string or load from localStorage |
+| **Features** | Non-clinical themes, crisis resources | Raw T-scores, CSV/JSON export | Validity gating, code types, scale interpretations, inline corroboration, longitudinal comparison, session view, subscale bars, profile charts |
+| **Delivery** | EmailJS sends report + dashboard deep link to Brian | On-screen only | On-screen + JSON export |
+| **Safety** | 988 crisis banner when DSI endorsed | Critical items with item text | Safety flagging with clinical guidance; session safety card |
+| **Data input** | User takes assessment | User takes assessment | Paste answer string, load from localStorage, or auto-score from URL deep link |
 
 ### Scoring Engine
 
@@ -124,6 +128,7 @@ The system has three separate user experiences sharing the same scoring engine:
 - `scoreInstrument()` — Main entry point
 - `scoreKeyedScale()` — Handles K-correction (0.5K for Hs, 0.4K for Pd, 1.0K for Pt/Sc, 0.2K for Ma)
 - `scoreInconsistency()` — VRIN/TRIN pair matching
+- `scoreSubscales()` — Harris-Lingoes subscale scoring (28 subscales, conditional on data availability)
 - `scoreCriticalItems()` — 10 critical item groups
 - `profileElevation()` — Mean T of Hs, D, Hy, Pd, Pa, Pt, Sc, Ma
 
@@ -141,11 +146,17 @@ The system has three separate user experiences sharing the same scoring engine:
 
 **`dashboard/`** — React + Vite interpretive analysis app
 
-- **Two views:** Clinical Brief (4-step no-scroll decision flow) + Detail View (scrollable accordions). Toggle with Brief/Detail buttons or press `D`.
+- **Three views:** Clinical Brief (4-step no-scroll decision flow) + Detail View (scrollable accordions) + Session View (shared clinician-client screen). Toggle with Brief/Detail/Session buttons or press `D`/`S`.
 - **Scoring bridge:** `scoring-bridge.ts` loads the vanilla `scoring-engine.js` + `scoring-data.js` via Vite `?raw` imports and `new Function()` evaluation. Zero changes to the vanilla files.
-- **Clinical intelligence:** Typed data files in `dashboard/src/data/` containing validity rules, ~28 two-point code type narratives, scale-by-scale interpretations (clinical + content), and content-to-clinical corroboration mappings.
-- **Visualizations:** Recharts line charts with T=65/T=80 threshold bands for clinical and validity profiles.
-- **Data input:** Paste T/F/? answer string from email report, or auto-load from localStorage (`assessment_*` keys saved by `client-reflections.js`).
+- **Clinical intelligence:** Typed data files in `dashboard/src/data/` containing validity rules, ~28 two-point code type narratives, scale-by-scale interpretations (clinical + content), content-to-clinical corroboration mappings, 28 Harris-Lingoes subscale interpretations, and 10 session discussion themes.
+- **Validity gating:** When profile is invalid (VRIN/TRIN >= 80, Cannot Say >= 30), Steps 2-4 in Brief and sections 2-7 in Detail are dimmed/blurred with an "Interpret Anyway" override button.
+- **Content corroboration inline:** One-line verdicts shown in Brief Step 3 alongside each elevated scale (e.g., "Supported by HEA" / "Not corroborated").
+- **Longitudinal comparison:** Select a previous localStorage assessment as baseline. Shows delta T-scores, code type shifts, dual-line profile chart (current vs. previous).
+- **Session View:** Warm, non-clinical discussion prompts per theme area. Designed for shared screen during session. Optional "Show Clinical Context" toggle reveals clinician annotations. DSI safety card shown when relevant.
+- **Harris-Lingoes subscales:** Conditional subscale bar charts under elevated clinical scales in Detail View, compact summary in Brief Step 3.
+- **URL deep links:** Email includes a clickable dashboard link with answer string + metadata as URL params. Dashboard auto-scores on load.
+- **Visualizations:** Recharts line charts with T=65/T=80 threshold bands, dual-line comparison support.
+- **Data input:** Paste T/F/? answer string from email report, auto-load from localStorage, or click deep link from email.
 - **Build:** `npm run build` in `dashboard/` → `dist/` output. GitHub Actions assembles `_site/` with root vanilla files + `dashboard/dist/`.
 - **Local dev:** `cd dashboard && npx vite --port 5175` or use the `dashboard` launch.json entry.
 
@@ -158,7 +169,8 @@ The system has three separate user experiences sharing the same scoring engine:
 - `CRITICAL_GROUP_REFLECTIONS` — 10 groups → gentle sentences
 - `CLINICAL_SCALE_THEMES` — T≥65 scales → broad themes (deduplicated with critical groups)
 - `checkSuicidalIdeation()` — DSI detection, high-risk item flagging (506, 520, 524)
-- `submitReport()` — EmailJS delivery + localStorage fallback
+- `buildDashboardUrl()` — Constructs deep-link URL with answer string + metadata as query params
+- `submitReport()` — EmailJS delivery (includes dashboard deep link) + localStorage fallback
 - `buildClinicianReport()` — Full JSON report for email
 
 ### Design System
@@ -184,18 +196,29 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 
 ## Current State
 
-### Deployed Features (v1.1.0)
+### Deployed Features (v1.2.0)
 
 - 567-item True/False assessment with keyboard nav, progress bar, minimap
 - Short form (370) and long form (567) support
 - Gender-specific norm tables and K-correction
 - Full scoring: validity, clinical, content, supplementary scales
+- Harris-Lingoes subscale scoring pipeline (28 subscales, awaiting transform data)
 - VRIN/TRIN inconsistency detection
 - 10 critical item groups with item-level tracking
 - Profile elevation (mean T of 8 clinical scales)
-- **Client version:** Guided reflection, crisis resources, EmailJS delivery
+- **Client version:** Guided reflection, crisis resources, EmailJS delivery with dashboard deep link
 - **Clinician version (legacy):** Full T-score tables, profile charts, CSV/JSON export
-- **Clinician dashboard (new):** React interpretive analysis with validity rules, 2-point code types, scale interpretations, content corroboration, Recharts profile charts, Brief/Detail two-view system
+- **Clinician dashboard:** React interpretive analysis with:
+  - Validity rules with gating (invalid profiles blur/block interpretation until explicit override)
+  - 2-point code types with interpretive narratives
+  - Scale interpretations with inline content corroboration verdicts
+  - Content corroboration promoted to prominent position in both Brief and Detail views
+  - Longitudinal comparison (select previous assessment as baseline, delta T-scores, dual-line charts)
+  - Session View (shared clinician-client screen with non-clinical discussion prompts, toggleable clinical context)
+  - Harris-Lingoes subscale bars (conditional under elevated parent clinical scales)
+  - URL deep links (email contains clickable link that auto-scores dashboard)
+  - Brief/Detail/Session three-view system with keyboard shortcuts (D, S)
+  - Recharts profile charts with dual-line comparison support
 - GitHub Pages deployment with auto-deploy on push (includes Vite build step for dashboard)
 
 ### Active Configuration
@@ -219,6 +242,7 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 | 5 | Deployment (GitHub Pages) + delivery (EmailJS) | Done | Apr 3 |
 | 6 | Documentation + version control (ICNS-pattern) | Done | Apr 6 |
 | 7 | Clinician dashboard (React interpretive analysis) | Done | Apr 6 |
+| 8 | Dashboard enhancements: URL deep links, validity gating, corroboration promotion, longitudinal comparison, session view, Harris-Lingoes subscales | Done | Apr 6 |
 
 ---
 
@@ -279,3 +303,9 @@ Font: Inter (400, 500, 600, 700). Matches DBT group apps and 37-practices toolki
 | Recharts over D3 | Declarative React components for line/bar charts; D3 overkill without network graphs |
 | Brief + Detail two-view pattern | Follows ICNS clinical workflow; Brief for 60-second pre-session prep, Detail for deep analysis |
 | No React Router | Single-page tool with view toggle — router adds no value |
+| URL params over clipboard | Answer string fits in URL (~690 chars for 567 items); clickable link in email eliminates copy-paste friction |
+| Validity gating with override | Invalid profiles should not be interpreted by default; explicit override ensures conscious clinical judgment |
+| Corroboration inline in Brief | Cross-validation is the most valuable interpretive feature; burying it in accordion section 5 hid it from the pre-session workflow |
+| Session View as third mode | Clinician and client need a shared artifact for session discussion; too clinical for client reflection, too vague for dashboard |
+| Harris-Lingoes conditional display | Subscales only relevant when parent scale is elevated; showing all 28 unconditionally would overwhelm |
+| Longitudinal via localStorage | No database needed; localStorage already stores timestamped reports; JSON export/import as future enhancement |

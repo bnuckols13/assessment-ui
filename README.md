@@ -42,6 +42,7 @@ Pure JS functions — `(answers, config) → results`. No dependencies, no DOM.
 - 6 validity scales (L, F, Fb, Fp, K, S)
 - 10 clinical scales with K-correction (Hs, D, Hy, Pd, Mf, Pa, Pt, Sc, Ma, Si)
 - 15 content scales, 7 supplementary scales
+- Harris-Lingoes subscale scoring (28 subscales, conditional on data availability)
 - VRIN/TRIN inconsistency detection
 - 10 critical item groups with safety flagging
 - Profile elevation (mean T of 8 clinical scales)
@@ -53,21 +54,25 @@ Pure JS functions — `(answers, config) → results`. No dependencies, no DOM.
 2. Answer items True/False (keyboard nav, minimap, progress bar)
 3. See warm guided reflection — no T-scores, no clinical terminology
 4. Crisis resources (988 Lifeline) shown automatically when suicidal ideation items are endorsed
-5. Full scored report emailed to clinician via EmailJS
+5. Full scored report + dashboard deep link emailed to clinician via EmailJS
 
 ### Clinician Dashboard (React)
 
-Interpretive analysis with two views (toggle with Brief/Detail buttons or press `D`):
+Interpretive analysis with three views (toggle with Brief/Detail/Session buttons or press `D`/`S`):
 
 **Clinical Brief** — 4-step no-scroll decision flow:
-1. Validity assessment (rule-based, traffic light)
+1. Validity assessment (rule-based, traffic light) — invalid profiles gate Steps 2-4 until explicit override
 2. Two-point code type identification + narrative
-3. Elevated scale interpretations
+3. Elevated scale interpretations with inline content corroboration verdicts and Harris-Lingoes subscale summary
 4. Critical items + safety flagging
 
-**Detail View** — 8 collapsible sections with charts, tables, scale-by-scale interpretations, content corroboration, and JSON export.
+**Detail View** — Collapsible sections with charts, tables, scale-by-scale interpretations, content corroboration (promoted), Harris-Lingoes subscale bars under elevated scales, longitudinal comparison, and JSON export.
 
-Data input: paste answer string from email or load from localStorage.
+**Session View** — Shared clinician-client screen with warm, non-clinical discussion prompts per theme area. Toggleable clinical context annotations. Safety card for DSI. Designed for in-session shared viewing.
+
+**Longitudinal Comparison** — Select a previous assessment as baseline. Delta T-scores, code type shifts, dual-line profile chart (current vs. previous).
+
+Data input: click deep link from email (auto-scores), paste answer string, or load from localStorage.
 
 ### Legacy Clinician View
 

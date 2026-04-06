@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Document** | ASSESS-SOP |
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Last Updated** | 2026-04-06 |
 | **Author** | Brian Nuckols + Claude |
 | **Status** | Active — Production |
@@ -16,6 +16,7 @@
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2.0 | 2026-04-06 | Phase 8: Six dashboard enhancements. URL deep links in email (auto-score on click). Validity gating (invalid profiles blur interpretation until override). Content corroboration promoted inline in Brief Step 3 + reordered in Detail. Longitudinal comparison (baseline selection, delta T-scores, dual-line charts). Session View (shared clinician-client screen with discussion prompts). Harris-Lingoes subscale scoring pipeline + conditional display. Three-view system (Brief/Detail/Session). |
 | 1.1.0 | 2026-04-06 | Added React clinician dashboard (Phase 7). New interpretive analysis system with validity rules, code types, scale interpretations, content corroboration. Updated deployment to include Vite build step. Three-app architecture. |
 | 1.0.0 | 2026-04-06 | Initial SOP. Full system documented: scoring engine, client reflection, clinician dashboard, EmailJS delivery, GitHub Pages deployment, safety features, design system. Phases 1-6 complete. |
 
@@ -28,6 +29,8 @@
 | EmailJS free tier | Active (200/mo) | Monitor usage; upgrade if client volume exceeds ~50/month |
 | Scale data validation | Pending | Compare T-score outputs against a trusted reference implementation for golden-case validation |
 | Short form SI items | By design | Items 506, 520, 524 (active SI) are above item 370 — not administered in short form. Clinician report notes this. |
+| EmailJS template update | Pending | Add `{{dashboard_url}}` to template `template_zdn60cd` to include clickable dashboard deep link in email reports. Code sends the variable; template needs the display. |
+| Harris-Lingoes transform data | Pending | `scoring-data.js` needs `harrisLingoesSubscales` array populated with keyed items + gender-specific T-score transform tables from reference manual. Scoring pipeline and dashboard display are ready. |
 
 ---
 
@@ -145,25 +148,36 @@ For interpretive analysis and clinical decision support, open:
 https://bnuckols13.github.io/assessment-ui/dashboard/
 
 **Data input options:**
-1. **Paste answer string:** Copy the `answer_string` from the email report → paste into the textarea → select gender → click "Score & Interpret"
-2. **Load from localStorage:** If a client completed the assessment on the same device, their report auto-appears in the "Recent Assessments" list. Click to load.
+1. **Click dashboard link in email (recommended):** Email report contains a clickable deep link that auto-scores the dashboard and opens Brief view. No copy-paste needed.
+2. **Paste answer string:** Copy the `answer_string` from the email report → paste into the textarea → select gender → click "Score & Interpret"
+3. **Load from localStorage:** If a client completed the assessment on the same device, their report auto-appears in the "Recent Assessments" list. Click to load.
+
+**Longitudinal comparison:** After loading a current assessment, click the "Compare" button next to any stored report in the Recent Assessments list. The dashboard shows delta T-scores, code type shifts, and a dual-line profile chart (current solid, previous dashed) in both Brief sidebar and Detail View.
 
 **Clinical Brief (press `D` to toggle views):**
-- Step 1: **Validity** — Is this profile interpretable? Traffic light + guidance text.
+- Step 1: **Validity** — Is this profile interpretable? Traffic light + guidance text. If invalid, Steps 2-4 are gated (blurred) until you click "Interpret Anyway".
 - Step 2: **Code Type** — Two-point code type with interpretive narrative, differentials, treatment considerations.
-- Step 3: **Elevations** — Top elevated clinical scales with interpretive paragraphs.
+- Step 3: **Elevations** — Top elevated clinical scales with interpretive paragraphs + inline content corroboration verdicts + elevated Harris-Lingoes subscale summary.
 - Step 4: **Critical Items** — Safety level + endorsement counts.
-- Right sidebar: Profile elevation, T/F/? counts, clinical profile chart.
+- Right sidebar: Profile elevation, T/F/? counts, clinical profile chart (with comparison overlay if baseline set), longitudinal comparison card.
 
-**Detail View (8 accordion sections):**
-- Validity Profile — chart + table + decision rules
-- Clinical Profile — chart + table + scale-by-scale interpretations + behavioral correlates
+**Detail View (9 accordion sections):**
+- Validity Profile — chart + table + decision rules (+ gating banner if invalid)
+- Longitudinal Comparison — delta table + dual-line chart (only shown when comparison baseline is set)
+- Clinical Profile — chart + table + scale-by-scale interpretations + behavioral correlates + Harris-Lingoes subscale bars under elevated scales
 - Code Type Analysis — full narrative + differentials + treatment considerations
+- Content Corroboration — does the content profile support the clinical elevations? (promoted above Content Scales)
 - Content Scales — table + interpretations for elevated scales
-- Content Corroboration — does the content profile support the clinical elevations?
 - Supplementary Scales — table
 - Critical Items — expandable groups with item text
 - Raw Data — config summary + JSON export
+
+**Session View (press `S` to toggle):**
+- Designed for shared clinician-client viewing during session
+- Shows warm, non-clinical discussion prompts for each elevated theme area
+- Safety card (calm teal) shown when DSI items are endorsed
+- "Show Clinical Context" toggle reveals clinician-only annotations per card
+- No T-scores, scale names, or clinical terminology visible by default
 
 ---
 
@@ -240,7 +254,12 @@ Or use the Claude Preview tool with launch.json configs: `assessment` (port 3002
 | `dashboard/src/data/scale-interpretations.ts` | Scale narratives | Editing interpretive text for clinical/content scales |
 | `dashboard/src/data/validity-guidance.ts` | Validity rules | Adding/editing validity decision rules |
 | `dashboard/src/data/content-corroboration.ts` | Content-to-clinical mapping | Editing corroboration interpretation text |
+| `dashboard/src/data/subscale-interpretations.ts` | Harris-Lingoes subscale narratives | Adding/editing subscale interpretation text |
+| `dashboard/src/data/session-themes.ts` | Session discussion themes | Adding/editing warm discussion prompts for Session View |
 | `dashboard/src/lib/validity-rules.ts` | Validity analysis engine | Changing rule logic or adding new rules |
+| `dashboard/src/lib/clinical-utils.ts` | Clinical utilities | Corroboration summaries, comparison data, T-score classification |
+| `dashboard/src/components/SessionView/` | Session View component | Changing shared clinician-client screen |
+| `dashboard/src/components/ComparisonPanel/` | Longitudinal comparison | Changing delta display, comparison logic |
 | `dashboard/src/components/` | UI components | Changing dashboard layout, visualizations |
 
 ### Testing
@@ -387,8 +406,9 @@ Next tier is $15/month for 1,000 emails.
 8. Pa (no K), Pt (1.0K), Sc (1.0K), Ma (0.2K), Si (no K)
 9. Content scales (ANX through TRT, no K-correction)
 10. Supplementary scales (A, R, Es, MAC-R, AAS, APS, MDS, no K-correction)
-11. Critical items (10 groups, endorsement check only)
-12. Profile elevation (mean T of Hs, D, Hy, Pd, Pa, Pt, Sc, Ma)
+11. Harris-Lingoes subscales (28 subscales, no K-correction — conditional on `harrisLingoesSubscales` data)
+12. Critical items (10 groups, endorsement check only)
+13. Profile elevation (mean T of Hs, D, Hy, Pd, Pa, Pt, Sc, Ma)
 
 ### K-Correction Formula
 

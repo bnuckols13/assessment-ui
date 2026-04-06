@@ -220,6 +220,21 @@ function buildClinicianReport(scoringResults, answers, config) {
 }
 
 /**
+ * Build a dashboard deep-link URL with answer string + metadata as query params.
+ * Clinician clicks this in the email → dashboard auto-scores and opens Brief view.
+ */
+function buildDashboardUrl(report) {
+  const base = "https://bnuckols13.github.io/assessment-ui/dashboard/";
+  const params = new URLSearchParams({
+    answers: report.answerString || "",
+    gender: report.client.gender || "",
+    form: report.client.formLength || "",
+    name: report.client.clientName || "",
+  });
+  return `${base}?${params.toString()}`;
+}
+
+/**
  * Submit the clinician report via EmailJS (and localStorage fallback).
  * Returns a promise: { ok: true } on success, { ok: false, error } on failure.
  */
@@ -264,6 +279,8 @@ async function submitReport(report) {
     critical_groups: criticalNames,
     // Answer string
     answer_string: report.answerString || "",
+    // Dashboard deep link
+    dashboard_url: buildDashboardUrl(report),
   };
 
   try {

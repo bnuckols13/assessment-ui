@@ -4,9 +4,11 @@ import { loadStoredReports } from '../../lib/scoring-bridge';
 
 interface DataEntryProps {
   onScore: (answerString: string, gender: Gender, formLength: FormLength, clientName?: string) => void;
+  onSetBaseline?: (report: StoredReport) => void;
+  hasCurrentResults?: boolean;
 }
 
-export function DataEntry({ onScore }: DataEntryProps) {
+export function DataEntry({ onScore, onSetBaseline, hasCurrentResults }: DataEntryProps) {
   const [answerString, setAnswerString] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [formLength, setFormLength] = useState<FormLength | ''>('');
@@ -15,6 +17,24 @@ export function DataEntry({ onScore }: DataEntryProps) {
   useEffect(() => {
     setStoredReports(loadStoredReports());
   }, []);
+
+  // Auto-score from URL params (deep link from email)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const answers = params.get('answers');
+    const g = params.get('gender') as Gender | null;
+    const f = params.get('form');
+    const name = params.get('name') || undefined;
+
+    if (answers && (answers.length === 370 || answers.length === 567) && /^[TF?]+$/i.test(answers)) {
+      const normalizedAnswers = answers.toUpperCase();
+      const detectedGender = (g === 'male' || g === 'female') ? g : 'male';
+      const detectedForm: FormLength = answers.length === 370 ? 'short' : (f === 'short' ? 'short' : 'long');
+      // Clean URL to prevent re-score on refresh
+      window.history.replaceState({}, '', window.location.pathname);
+      onScore(normalizedAnswers, detectedGender, detectedForm, name);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validLength = answerString.length === 370 || answerString.length === 567;
   const canScore = answerString.length > 0 && gender !== '' && formLength !== '' && validLength;
@@ -90,10 +110,23 @@ export function DataEntry({ onScore }: DataEntryProps) {
                   className="stored-report-item"
                   onClick={() => handleLoadReport(report)}
                 >
-                  <span className="stored-report-name">{report.client.clientName || 'Anonymous'}</span>
-                  <span className="stored-report-meta">
-                    {new Date(report.timestamp).toLocaleDateString()} · {report.client.gender} · {report.client.formLength}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                    <span className="stored-report-name">{report.client.clientName || 'Anonymous'}</span>
+                    <span className="stored-report-meta">
+                      {new Date(report.timestamp).toLocaleDateString()} · {report.client.gender} · {report.client.formLength}
+                    </span>
+                  </div>
+                  {hasCurrentResults && onSetBaseline && (
+                    <button
+                      className="baseline-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetBaseline(report);
+                      }}
+                    >
+                      Compare
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

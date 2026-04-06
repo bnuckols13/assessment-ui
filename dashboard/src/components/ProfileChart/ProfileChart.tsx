@@ -7,16 +7,23 @@ import { tScoreColor } from '../../lib/clinical-utils';
 
 interface ProfileChartProps {
   scales: (ScaleResult | InconsistencyResult)[];
+  comparisonScales?: (ScaleResult | InconsistencyResult)[];
   title?: string;
   height?: number;
 }
 
-export function ProfileChart({ scales, title, height = 280 }: ProfileChartProps) {
-  const data = scales.map(s => ({
-    name: s.code,
-    tScore: s.tScore ?? undefined,
-    fill: tScoreColor(s.tScore),
-  }));
+export function ProfileChart({ scales, comparisonScales, title, height = 280 }: ProfileChartProps) {
+  const data = scales.map(s => {
+    const prev = comparisonScales?.find(c => c.code === s.code);
+    return {
+      name: s.code,
+      tScore: s.tScore ?? undefined,
+      prevTScore: prev?.tScore ?? undefined,
+      fill: tScoreColor(s.tScore),
+    };
+  });
+
+  const hasComparison = comparisonScales && comparisonScales.length > 0;
 
   return (
     <div>
@@ -55,9 +62,24 @@ export function ProfileChart({ scales, title, height = 280 }: ProfileChartProps)
               fontFamily: 'var(--font-body)',
               fontSize: '0.82rem',
             }}
-            formatter={(value: unknown) => [`T = ${value}`, '']}
+            formatter={(value: unknown, name: string) => {
+              const label = name === 'prevTScore' ? 'Previous' : 'Current';
+              return [`T = ${value}`, label];
+            }}
             labelFormatter={(label: unknown) => String(label)}
           />
+          {hasComparison && (
+            <Line
+              type="monotone"
+              dataKey="prevTScore"
+              stroke="var(--text-tertiary)"
+              strokeWidth={1.5}
+              strokeDasharray="6 3"
+              dot={{ r: 3, fill: 'var(--text-tertiary)', stroke: 'var(--surface)', strokeWidth: 1 }}
+              activeDot={{ r: 5, fill: 'var(--text-tertiary)', stroke: 'var(--surface)', strokeWidth: 2 }}
+              connectNulls
+            />
+          )}
           <Line
             type="monotone"
             dataKey="tScore"
@@ -69,6 +91,18 @@ export function ProfileChart({ scales, title, height = 280 }: ProfileChartProps)
           />
         </LineChart>
       </ResponsiveContainer>
+      {hasComparison && (
+        <div className="comparison-legend">
+          <div className="comparison-legend-item">
+            <svg width="20" height="2"><line x1="0" y1="1" x2="20" y2="1" stroke="var(--accent)" strokeWidth="2" /></svg>
+            Current
+          </div>
+          <div className="comparison-legend-item">
+            <svg width="20" height="2"><line x1="0" y1="1" x2="20" y2="1" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeDasharray="4 2" /></svg>
+            Previous
+          </div>
+        </div>
+      )}
     </div>
   );
 }

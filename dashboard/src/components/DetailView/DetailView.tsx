@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import type { ScoringResults } from '../../lib/types';
+import type { ScoringResults, ComparisonData } from '../../lib/types';
 import { getElevatedScales, tScoreColor } from '../../lib/clinical-utils';
 import { CLINICAL_SCALE_INTERPRETATIONS, CONTENT_SCALE_INTERPRETATIONS } from '../../data/scale-interpretations';
+import { SUBSCALE_INTERPRETATIONS } from '../../data/subscale-interpretations';
 import { ValidityPanel } from '../ValidityPanel/ValidityPanel';
 import { CodeTypePanel } from '../CodeTypePanel/CodeTypePanel';
 import { ContentCorroboration } from '../ContentCorroboration/ContentCorroboration';
 import { CriticalItems } from '../CriticalItems/CriticalItems';
 import { ProfileChart } from '../ProfileChart/ProfileChart';
 import { ScaleTable } from '../ScaleTable/ScaleTable';
+import { ComparisonPanel } from '../ComparisonPanel/ComparisonPanel';
 
 interface DetailViewProps {
   results: ScoringResults;
+  validityGated?: boolean;
+  onValidityOverride?: () => void;
+  comparisonData?: ComparisonData | null;
 }
 
 function DetailSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
@@ -30,7 +35,7 @@ function DetailSection({ title, defaultOpen = false, children }: { title: string
   );
 }
 
-export function DetailView({ results }: DetailViewProps) {
+export function DetailView({ results, validityGated, onValidityOverride, comparisonData }: DetailViewProps) {
   const elevatedClinical = getElevatedScales(results.clinicalScales, 65);
   const elevatedContent = getElevatedScales(results.contentScales, 65);
 
@@ -50,8 +55,38 @@ export function DetailView({ results }: DetailViewProps) {
         </div>
       </DetailSection>
 
-      <DetailSection title="Clinical Profile" defaultOpen>
-        <ProfileChart scales={results.clinicalScales} title="Clinical Scales" height={300} />
+      {validityGated && (
+        <div className="validity-gate-banner">
+          <div className="validity-gate-banner-text">
+            This profile did not pass validity screening. Clinical interpretation is not recommended. Sections below are hidden until you explicitly choose to proceed.
+          </div>
+          <button className="validity-gate-btn" onClick={onValidityOverride}>Interpret Anyway</button>
+        </div>
+      )}
+
+      <div className={validityGated ? 'validity-gated-section' : ''}>
+
+      {comparisonData && (
+        <DetailSection title="Longitudinal Comparison">
+          <ComparisonPanel data={comparisonData} />
+          <div style={{ marginTop: '1rem' }}>
+            <ProfileChart
+              scales={results.clinicalScales}
+              comparisonScales={comparisonData.previousClinicalScales}
+              title="Clinical Profile — Current vs. Previous"
+              height={300}
+            />
+          </div>
+        </DetailSection>
+      )}
+
+      <DetailSection title="Clinical Profile" defaultOpen={!validityGated}>
+        <ProfileChart
+          scales={results.clinicalScales}
+          comparisonScales={comparisonData?.previousClinicalScales}
+          title="Clinical Scales"
+          height={300}
+        />
         <div style={{ marginTop: '1rem' }}>
           <ScaleTable scales={results.clinicalScales} />
         </div>
@@ -64,15 +99,44 @@ export function DetailView({ results }: DetailViewProps) {
               const interp = CLINICAL_SCALE_INTERPRETATIONS.find(i => i.code === scale.code);
               if (!interp) return null;
               const band = scale.tScore !== null && scale.tScore >= 80 ? interp.marked : interp.moderate;
+              const childSubscales = (results.subscaleResults || []).filter(s => s.parentCode === scale.code);
               return (
-                <div key={scale.code} className="interp-block" style={{ borderLeftColor: tScoreColor(scale.tScore) }}>
-                  <div className="interp-header">
-                    <span className="interp-code">{scale.code}</span>
-                    <span className="interp-name">{interp.name}</span>
-                    <span className="interp-tscore" style={{ color: tScoreColor(scale.tScore) }}>T = {scale.tScore}</span>
+                <div key={scale.code}>
+                  <div className="interp-block" style={{ borderLeftColor: tScoreColor(scale.tScore) }}>
+                    <div className="interp-header">
+                      <span className="interp-code">{scale.code}</span>
+                      <span className="interp-name">{interp.name}</span>
+                      <span className="interp-tscore" style={{ color: tScoreColor(scale.tScore) }}>T = {scale.tScore}</span>
+                    </div>
+                    <div className="interp-text">{band.description}</div>
+                    <div className="interp-correlates">Behavioral correlates: {interp.behavioralCorrelates}</div>
                   </div>
-                  <div className="interp-text">{band.description}</div>
-                  <div className="interp-correlates">Behavioral correlates: {interp.behavioralCorrelates}</div>
+                  {childSubscales.length > 0 && (
+                    <div className="subscale-group">
+                      <div className="subscale-group-label">Harris-Lingoes Subscales</div>
+                      {childSubscales.map(sub => {
+                        const subInterp = SUBSCALE_INTERPRETATIONS.find(si => si.code === sub.code);
+                        const pct = sub.tScore !== null ? Math.min(Math.max((sub.tScore - 30) / 90 * 100, 0), 100) : 0;
+                        return (
+                          <div key={sub.code} className="subscale-bar-item">
+                            <div className="subscale-bar-header">
+                              <span className="subscale-bar-code">{sub.code}</span>
+                              <span className="subscale-bar-name">{subInterp?.name || sub.description}</span>
+                              <span className="subscale-bar-tscore" style={{ color: tScoreColor(sub.tScore) }}>
+                                {sub.tScore ?? '—'}
+                              </span>
+                            </div>
+                            <div className="subscale-bar-track">
+                              <div className="subscale-bar-fill" style={{ width: `${pct}%`, background: tScoreColor(sub.tScore) }} />
+                            </div>
+                            {sub.tScore !== null && sub.tScore >= 65 && subInterp && (
+                              <div className="subscale-interp">{subInterp.elevated}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -82,6 +146,10 @@ export function DetailView({ results }: DetailViewProps) {
 
       <DetailSection title="Code Type Analysis">
         <CodeTypePanel results={results} />
+      </DetailSection>
+
+      <DetailSection title="Content Corroboration">
+        <ContentCorroboration results={results} />
       </DetailSection>
 
       <DetailSection title="Content Scales">
@@ -110,10 +178,6 @@ export function DetailView({ results }: DetailViewProps) {
         )}
       </DetailSection>
 
-      <DetailSection title="Content Corroboration">
-        <ContentCorroboration results={results} />
-      </DetailSection>
-
       <DetailSection title="Supplementary Scales">
         <ScaleTable scales={results.supplementaryScales} showCorrected={false} />
       </DetailSection>
@@ -121,6 +185,8 @@ export function DetailView({ results }: DetailViewProps) {
       <DetailSection title="Critical Items">
         <CriticalItems results={results} />
       </DetailSection>
+
+      </div>{/* end validity-gated-section wrapper */}
 
       <DetailSection title="Raw Data">
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
