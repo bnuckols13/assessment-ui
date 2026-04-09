@@ -203,6 +203,7 @@ function buildClinicianReport(scoringResults, answers, config) {
     timestamp: new Date(ts).toISOString(),
     client: {
       clientName: config.clientName || "",
+      clientEmail: config.clientEmail || "",
       gender: config.gender,
       formLength: config.form,
       identifier: `${config.clientName || "anon"}_${new Date(ts).toISOString().slice(0, 10)}_${ts}`
@@ -307,6 +308,7 @@ async function submitReport(report) {
       body: JSON.stringify({
         instrument: "pri",
         client_name: report.client.clientName || "Anonymous",
+        email: report.client.clientEmail || undefined,
         gender: report.client.gender || null,
         form_length: report.client.formLength === "short" ? "short_370" : "full_567",
         scores: {

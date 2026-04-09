@@ -414,6 +414,11 @@
     </div>
 
     <div class="option-group">
+      <label>Email <span style="color:#A8A29E; font-weight:400; font-size:0.85em;">(optional — for follow-up resources)</span></label>
+      <input type="email" id="clientEmailInput" class="text-input" placeholder="your@email.com" autocomplete="off">
+    </div>
+
+    <div class="option-group">
       <label>I identify as</label>
       <div class="toggle-row">
         <button class="toggle-btn" data-group="gender" data-val="male" onclick="setOption(this)">Male</button>
@@ -1085,7 +1090,7 @@ const questions = [
 
 // ── State ──
 const SHORT_FORM_COUNT = 370;
-let config = { gender: null, form: null, clientName: "" };
+let config = { gender: null, form: null, clientName: "", clientEmail: "" };
 let currentIndex = 0;
 let answers = {};
 let totalQuestions = 567;
@@ -1102,6 +1107,7 @@ function setOption(btn) {
 function validateSetup() {
   const name = document.getElementById('clientNameInput').value.trim();
   config.clientName = name;
+  config.clientEmail = (document.getElementById('clientEmailInput').value || '').trim();
   document.getElementById('startBtn').disabled = !(config.gender && config.form && name.length >= 2);
 }
 
