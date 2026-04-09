@@ -8,6 +8,10 @@ const EMAILJS_PUBLIC_KEY = "ANt1qC0LKrmj-dEBp";
 const EMAILJS_SERVICE_ID = "service_ym3061l";
 const EMAILJS_TEMPLATE_ID = "template_zdn60cd";
 
+// ─── Supabase Webhook Configuration ─────────────────────────────────────────
+const SUPABASE_WEBHOOK_URL = "https://oxabwsnqfqeyrpgjwnde.supabase.co/functions/v1/assessment-webhook";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94YWJ3c25xZnFleXJwZ2p3bmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NjgwMjEsImV4cCI6MjA5MTI0NDAyMX0.0GLYB5eMkki0J42XpSNSjmwUR2iVP4VrxWKDxuOwh_0";
+
 // ─── Overall Tone (from profile elevation) ───────────────────────────────────
 
 const TONE_BANDS = [
@@ -285,9 +289,43 @@ async function submitReport(report) {
 
   try {
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
-    return { ok: true, method: "email" };
   } catch (err) {
     console.warn("EmailJS failed, results saved to localStorage:", err);
-    return { ok: false, error: String(err), method: "localStorage" };
   }
+
+  // Send to Supabase webhook (non-blocking — don't let this fail the submission)
+  try {
+    const clinicalScales = {};
+    (report.scoring.clinicalScales || []).forEach(s => { clinicalScales[s.code] = s.tScore; });
+
+    await fetch(SUPABASE_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        instrument: "pri",
+        client_name: report.client.clientName || "Anonymous",
+        gender: report.client.gender || null,
+        form_length: report.client.formLength === "short" ? "short_370" : "full_567",
+        scores: {
+          profile_elevation: report.scoring.profileElevation,
+          clinical_scales: clinicalScales,
+          validity_status: report.safetyFlags.level,
+          safety_flags: {
+            crisis_shown: report.safetyFlags.showCrisisResource,
+            high_risk_count: report.safetyFlags.endorsedHighRiskCount,
+          },
+        },
+        answer_string: report.answerString || "",
+        validity_status: report.safetyFlags.level === "high" ? "caution" : "valid",
+      }),
+    });
+    console.log("Supabase webhook sent");
+  } catch (err) {
+    console.warn("Supabase webhook failed (non-blocking):", err);
+  }
+
+  return { ok: true, method: "email" };
 }
